@@ -1,8 +1,4 @@
-# osx / sshfs
-._*
-.DS_Store
+# Binary
+bin
 
-# emacs / vim
-*~
-\#*\#
-.\#*
+vendor
