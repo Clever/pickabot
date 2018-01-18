@@ -6,19 +6,20 @@ import (
 
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/mock_slackapi"
+	whoswho "github.com/Clever/who-is-who/go-client"
 	"github.com/golang/mock/gomock"
 	"github.com/nlopes/slack"
 )
 
 const testChannel = "test-channel"
-const testUser = "test-user"
+const testUserID = "U0"
 
 func makeSlackMessage(text string) *slack.MessageEvent {
 	return &slack.MessageEvent{
 		Msg: slack.Msg{
-			Username: testUser,
-			Text:     text,
-			Channel:  testChannel,
+			User:    testUserID,
+			Text:    text,
+			Channel: testChannel,
 		},
 	}
 }
@@ -49,23 +50,20 @@ func getMockBot(t *testing.T) (*Bot, *BotMocks, *gomock.Controller) {
 	pickabot := &Bot{
 		SlackAPIService: mockSlackAPIService,
 		SlackRTMService: mockSlackRTMService,
-		TeamToTeamMembers: map[string][]User{
-			"eng-example-team": []User{
-				User{SlackHandle: "test-user1"},
-				User{SlackHandle: "test-user2"},
-				User{SlackHandle: "test-user3"},
-				User{SlackHandle: "test-user4"},
+		TeamToTeamMembers: map[string][]whoswho.User{
+			"example-team": []whoswho.User{
+				whoswho.User{SlackID: "U1"},
+				whoswho.User{SlackID: "U2"},
+				whoswho.User{SlackID: "U3"},
+				whoswho.User{SlackID: "U4"},
 			},
-			"eng-empty-team": []User{},
-			"eng-same-user-team": []User{
-				User{SlackHandle: testUser},
+			"empty-team": []whoswho.User{},
+			"same-user-team": []whoswho.User{
+				whoswho.User{SlackID: testUserID},
 			},
-		},
-		RepoToShepherds: map[string][]User{
-			"repo1": []User{},
 		},
 		Logger:       logger.New(testChannel),
-		Name:         testUser,
+		Name:         testUserID,
 		RandomSource: rand.NewSource(0),
 	}
 
@@ -94,7 +92,7 @@ func TestNotUnderstoodMessageForBot(t *testing.T) {
 	pickabot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUser), nil)
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := didNotUnderstand
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
@@ -107,7 +105,8 @@ func TestPickTeamMember(t *testing.T) {
 	pickabot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUser), nil)
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	mocks.SlackAPI.EXPECT().GetUserInfo("U3").Return(makeSlackUser("test-user3"), nil)
 	msg := "I choose you: test-user3"
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
@@ -116,11 +115,25 @@ func TestPickTeamMember(t *testing.T) {
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick a eng-example-team"))
 }
 
+func TestPickTeamMemberWorksWithoutEngPrefix(t *testing.T) {
+	pickabot, mocks, mockCtrl := getMockBot(t)
+	defer mockCtrl.Finish()
+
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	mocks.SlackAPI.EXPECT().GetUserInfo("U3").Return(makeSlackUser("test-user3"), nil)
+	msg := "I choose you: test-user3"
+	message := makeSlackOutgoingMessage(msg)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+	mocks.SlackRTM.EXPECT().SendMessage(message)
+
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick an example-team"))
+}
+
 func TestPickTeamMemberInvalidTeam(t *testing.T) {
 	pickabot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUser), nil)
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := couldNotFindTeam
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
@@ -133,7 +146,7 @@ func TestPickUserNoUserError(t *testing.T) {
 	pickabot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUser), nil)
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := pickUserProblem
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
@@ -146,7 +159,7 @@ func TestPickUserNoUserErrorDueToOmit(t *testing.T) {
 	pickabot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUser), nil)
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := pickUserProblem
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)

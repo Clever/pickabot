@@ -10,15 +10,15 @@ $(eval $(call golang-version-check,1.9))
 
 all: test build
 
-test: install_deps $(PKGS)
+test: $(PKGS)
 $(PKGS): golang-test-all-strict-deps
 	$(call golang-test-all-strict,$@)
 
-build: install_deps
+build:
 	$(call golang-build,$(PKG),$(EXECUTABLE))
 
 run: build
-	./bin/$(EXECUTABLE)
+	./bin/pickabot
 
 install_deps: golang-dep-vendor-deps
 	$(call golang-dep-vendor)

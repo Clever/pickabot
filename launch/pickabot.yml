@@ -9,4 +9,6 @@ resources:
 shepherds:
 - "nathan.leiby@clever.com"
 expose: []
+dependencies:
+- who-is-who
 team: "eng-infra"

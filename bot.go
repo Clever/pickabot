@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
+	"strings"
 
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/slackapi"
+	whoswho "github.com/Clever/who-is-who/go-client"
 	"github.com/nlopes/slack"
 )
 
 // Bot is the encapsulation of the logic to respond to Slack messages, by calling out to external services
 type Bot struct {
-	TeamToTeamMembers map[string][]User
-	RepoToShepherds   map[string][]User
+	TeamToTeamMembers map[string][]whoswho.User
 	SlackAPIService   slackapi.SlackAPIService
 	SlackRTMService   slackapi.SlackRTMService
 	ProjectMap        map[string]string
@@ -52,11 +53,12 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 			teamMatch := pickTeamRegex.FindStringSubmatch(message)
 			if len(teamMatch) > 1 {
 				teamName := teamMatch[1]
-				omit := User{SlackHandle: ev.Username}
+				omit := whoswho.User{SlackID: ev.User}
 				bot.Logger.InfoD("pick-team-member", logger.M{"team": teamName, "omit-user": omit})
 
 				// Get team members
 				// TODO: Allow smarter lookup of team name (eng-team-name, team-name, team-name with slight misspelling, etc)
+				teamName = strings.TrimPrefix(teamName, "eng-")
 				teamMembers, ok := bot.TeamToTeamMembers[teamName]
 				if !ok {
 					bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(couldNotFindTeam, ev.Channel))
@@ -70,7 +72,14 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 					return
 				}
 
-				bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("I choose you: %s", user.SlackHandle), ev.Channel))
+				userInfo, err := bot.SlackAPIService.GetUserInfo(user.SlackID)
+				if err != nil {
+					bot.Logger.ErrorD("get-user-info-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+					bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(pickUserProblem, ev.Channel))
+					return
+				}
+
+				bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("I choose you: %s", userInfo.Name), ev.Channel))
 				return
 			}
 

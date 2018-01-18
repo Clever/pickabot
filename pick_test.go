@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
+	whoswho "github.com/Clever/who-is-who/go-client"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,12 +14,12 @@ var source = rand.NewSource(0)
 func TestPickUser(t *testing.T) {
 	assert := assert.New(t)
 
-	currentUser := User{
-		SlackHandle: "@n",
+	currentUser := whoswho.User{
+		SlackID: "U99995",
 	}
-	u1 := User{SlackHandle: "@user1"}
-	u2 := User{SlackHandle: "@user2"}
-	users := []User{currentUser, u1, u2}
+	u1 := whoswho.User{SlackID: "U99991"}
+	u2 := whoswho.User{SlackID: "U99992"}
+	users := []whoswho.User{currentUser, u1, u2}
 	omit := &currentUser
 	picked, err := pickUser(users, omit, source)
 	assert.NoError(err)
@@ -29,16 +30,16 @@ func TestPickUserFailsIfEmptyUserList(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Log("Fails if empty list")
-	users := []User{}
+	users := []whoswho.User{}
 	_, err := pickUser(users, nil, source)
 	assert.Error(err)
 	assert.Equal(ErrNoUsers, err)
 
 	t.Log("Fails if empty list due to omitted user")
-	currentUser := User{
-		SlackHandle: "@n",
+	currentUser := whoswho.User{
+		SlackID: "U99995",
 	}
-	users = []User{currentUser}
+	users = []whoswho.User{currentUser}
 	omit := &currentUser
 	_, err = pickUser(users, omit, source)
 	assert.Error(err)
