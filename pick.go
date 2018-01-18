@@ -22,7 +22,7 @@ func pickUser(users []whoswho.User, omit *whoswho.User, source rand.Source) (who
 	if omit != nil {
 		for idx, u := range users {
 			// Remove omitted user
-			if u == *omit {
+			if u.SlackID == omit.SlackID {
 				users = append(users[:idx], users[idx+1:]...)
 				break
 			}
