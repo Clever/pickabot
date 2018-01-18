@@ -2,10 +2,22 @@
 
 
 [[projects]]
+  name = "github.com/Clever/discovery-go"
+  packages = ["."]
+  revision = "b2114f3bdf1c55f030cf6d6d457478ccb18b9e9c"
+  version = "v1.7.1"
+
+[[projects]]
   name = "github.com/Clever/kayvee-go"
   packages = ["logger"]
   revision = "e1e6fd8184162847c1123645e7058347a2fd3959"
   version = "v6.10.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/Clever/who-is-who"
+  packages = ["go-client"]
+  revision = "a1f8564796bcd47cc897cb032c94d079e203323e"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -18,6 +30,18 @@
   packages = ["gomock"]
   revision = "13f360950a79f5864a972c786a10a50e44b69541"
   version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-cleanhttp"
+  packages = ["."]
+  revision = "d5fe4b57a186c716b0e00b8c301cbd9b4182694d"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-retryablehttp"
+  packages = ["."]
+  revision = "794af36148bf63c118d6db80eb902a136b907e71"
 
 [[projects]]
   name = "github.com/nlopes/slack"
@@ -63,7 +87,7 @@
 
 [[projects]]
   name = "gopkg.in/Clever/kayvee-go.v6"
-  packages = [".","router"]
+  packages = [".","logger","router"]
   revision = "e1e6fd8184162847c1123645e7058347a2fd3959"
   version = "v6.10.0"
 
@@ -76,6 +100,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "90f5acb3e4e60730b3b9027e4ac6aade36bce5a65aa624a0c9ff01a5a722b67e"
+  inputs-digest = "a02718afccde42a0150607de7af2bf019376eafa83cc9d26a50dd0de3e40474c"
   solver-name = "gps-cdcl"
   solver-version = 1
