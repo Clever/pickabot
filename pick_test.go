@@ -45,3 +45,18 @@ func TestPickUserFailsIfEmptyUserList(t *testing.T) {
 	assert.Error(err)
 	assert.Equal(ErrNoUsers, err)
 }
+
+func TestPickUserDedupsBySlackID(t *testing.T) {
+	assert := assert.New(t)
+
+	currentUser := whoswho.User{
+		SlackID: "U99995",
+	}
+	u1 := whoswho.User{SlackID: "U99991"}
+	u2 := whoswho.User{SlackID: "U99992"}
+	users := []whoswho.User{currentUser, currentUser, u1, u2, u2, u2, u2, u2, u2, u2, u2, u2, u2, u2}
+	omit := &currentUser
+	picked, err := pickUser(users, omit, source)
+	assert.NoError(err)
+	assert.Equal(u1, picked)
+}

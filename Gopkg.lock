@@ -63,6 +63,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/texttheater/golang-levenshtein"
+  packages = ["levenshtein"]
+  revision = "1a14278c506abae7c17b3cb0b84ae863c7300454"
+
+[[projects]]
+  branch = "master"
   name = "github.com/xeipuuv/gojsonpointer"
   packages = ["."]
   revision = "6fe8760cad3569743d51ddbb243b26f8456742dc"
@@ -100,6 +106,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a02718afccde42a0150607de7af2bf019376eafa83cc9d26a50dd0de3e40474c"
+  inputs-digest = "02de3c56c7097befccbdb05bbc07f62dc3896b075af2c7f86951a306b76d25cb"
   solver-name = "gps-cdcl"
   solver-version = 1
