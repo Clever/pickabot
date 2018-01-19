@@ -86,7 +86,7 @@ func (bot *Bot) findMatchingTeam(s string) (string, error) {
 	s = strings.TrimPrefix(s, "eng-")
 
 	teams := []string{}
-	for team, _ := range bot.TeamToTeamMembers {
+	for team := range bot.TeamToTeamMembers {
 		teams = append(teams, team)
 	}
 
