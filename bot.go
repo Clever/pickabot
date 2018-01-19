@@ -149,13 +149,6 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 		return
 	}
 
-	userInfo, err := bot.SlackAPIService.GetUserInfo(user.SlackID)
-	if err != nil {
-		bot.Logger.ErrorD("get-user-info-error", logger.M{"error": err.Error(), "event-text": ev.Text})
-		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(pickUserProblem, ev.Channel))
-		return
-	}
-
-	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("I choose you: %s", userInfo.Name), ev.Channel))
+	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("I choose you: <@%s>", user.SlackID), ev.Channel))
 	return
 }

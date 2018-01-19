@@ -106,8 +106,7 @@ func TestPickTeamMember(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	mocks.SlackAPI.EXPECT().GetUserInfo("U3").Return(makeSlackUser("test-user3"), nil)
-	msg := "I choose you: test-user3"
+	msg := "I choose you: <@U3>"
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 	mocks.SlackRTM.EXPECT().SendMessage(message)
@@ -120,8 +119,7 @@ func TestPickTeamMemberWorksWithoutEngPrefix(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	mocks.SlackAPI.EXPECT().GetUserInfo("U3").Return(makeSlackUser("test-user3"), nil)
-	msg := "I choose you: test-user3"
+	msg := "I choose you: <@U3>"
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 	mocks.SlackRTM.EXPECT().SendMessage(message)
