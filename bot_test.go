@@ -88,6 +88,15 @@ func TestMessageNotForBot(t *testing.T) {
 	pickabot.DecodeMessage(makeSlackMessage("<@U9876> hey"))
 }
 
+func TestEmptyMessageForBot(t *testing.T) {
+	pickabot, mocks, mockCtrl := getMockBot(t)
+	defer mockCtrl.Finish()
+
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> "))
+}
+
 func TestNotUnderstoodMessageForBot(t *testing.T) {
 	pickabot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
@@ -112,6 +121,14 @@ func TestPickTeamMember(t *testing.T) {
 	mocks.SlackRTM.EXPECT().SendMessage(message)
 
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick a eng-example-team"))
+
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	msg = "I choose you: <@U3>"
+	message = makeSlackOutgoingMessage(msg)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+	mocks.SlackRTM.EXPECT().SendMessage(message)
+
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick a eng-example-team for https://github.com/Clever/fake-repo/pull/1"))
 }
 
 func TestPickTeamMemberWorksWithoutEngPrefix(t *testing.T) {

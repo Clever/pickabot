@@ -28,8 +28,8 @@ type Bot struct {
 // TODO: force a greedy match on user
 // https://stackoverflow.com/questions/2301285/what-do-lazy-and-greedy-mean-in-the-context-of-regular-expressions
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
-var pickTeamRegex = regexp.MustCompile(`pick a[n]? (.*)`)
-var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is a[n]? (.*)`)
+var pickTeamRegex = regexp.MustCompile(`pick a[n]? ([a-zA-Z-]+)`)
+var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is a[n]? ([a-zA-Z-]+)`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
@@ -56,6 +56,10 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 		if info.Name == bot.Name {
 			bot.Logger.InfoD("listening", logger.M{"message": "Saw a message for me"})
 			message := result[2]
+			message = strings.Trim(message, " ")
+			if message == "" {
+				return
+			}
 
 			// Pick a team member
 			teamMatch := pickTeamRegex.FindStringSubmatch(message)
