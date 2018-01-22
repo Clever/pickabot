@@ -16,19 +16,18 @@ import (
 
 // Bot is the encapsulation of the logic to respond to Slack messages, by calling out to external services
 type Bot struct {
+	Name   string
+	Logger logger.KayveeLogger
+
+	SlackAPIService slackapi.SlackAPIService
+	SlackRTMService slackapi.SlackRTMService
+
 	TeamToTeamMembers map[string][]whoswho.User
-	SlackAPIService   slackapi.SlackAPIService
-	SlackRTMService   slackapi.SlackRTMService
-	ProjectMap        map[string]string
-	Logger            logger.KayveeLogger
-	Name              string
 	RandomSource      rand.Source
 }
 
-// TODO: force a greedy match on user
-// https://stackoverflow.com/questions/2301285/what-do-lazy-and-greedy-mean-in-the-context-of-regular-expressions
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
-var pickTeamRegex = regexp.MustCompile(`pick a[n]? ([a-zA-Z-]+)`)
+var pickTeamRegex = regexp.MustCompile(`pick a[n]? (eng)?[- ]?([a-zA-Z-]+)`)
 var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is a[n]? ([a-zA-Z-]+)`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
@@ -63,8 +62,8 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 
 			// Pick a team member
 			teamMatch := pickTeamRegex.FindStringSubmatch(message)
-			if len(teamMatch) > 1 {
-				teamName := teamMatch[1]
+			if len(teamMatch) > 2 {
+				teamName := teamMatch[2]
 				// TODO: Return an error and handle it
 				bot.pickTeamMember(ev, teamName)
 				return

@@ -114,6 +114,7 @@ func TestPickTeamMember(t *testing.T) {
 	pickabot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
+	t.Log("Works with eng-example-team (starts with `eng-`)")
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := "I choose you: <@U3>"
 	message := makeSlackOutgoingMessage(msg)
@@ -122,8 +123,18 @@ func TestPickTeamMember(t *testing.T) {
 
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick a eng-example-team"))
 
+	t.Log("Works with eng example-team (includes a space)")
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg = "I choose you: <@U3>"
+	message = makeSlackOutgoingMessage(msg)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+	mocks.SlackRTM.EXPECT().SendMessage(message)
+
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick a eng example-team"))
+
+	t.Log("Works if there are words after the team name")
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	msg = "I choose you: <@U2>"
 	message = makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 	mocks.SlackRTM.EXPECT().SendMessage(message)
