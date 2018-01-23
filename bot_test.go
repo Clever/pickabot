@@ -9,6 +9,7 @@ import (
 	whoswho "github.com/Clever/who-is-who/go-client"
 	"github.com/golang/mock/gomock"
 	"github.com/nlopes/slack"
+	"github.com/stretchr/testify/assert"
 )
 
 const testChannel = "test-channel"
@@ -192,4 +193,22 @@ func TestPickUserNoUserErrorDueToOmit(t *testing.T) {
 	mocks.SlackRTM.EXPECT().SendMessage(message)
 
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick a eng-same-user-team"))
+}
+
+func TestAddOverride(t *testing.T) {
+	pickabot, mocks, mockCtrl := getMockBot(t)
+	defer mockCtrl.Finish()
+
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	msg := "Added <@U5555> to team example-team!"
+	message := makeSlackOutgoingMessage(msg)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+	mocks.SlackRTM.EXPECT().SendMessage(message)
+
+	assert.Equal(t, 0, len(teamOverrides))
+	assert.Equal(t, []whoswho.User(nil), teamOverrides["example-team"])
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> <@U5555> is an eng-example-team"))
+	assert.Equal(t, []whoswho.User{
+		whoswho.User{SlackID: "U5555"},
+	}, teamOverrides["example-team"])
 }

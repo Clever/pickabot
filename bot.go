@@ -22,13 +22,16 @@ type Bot struct {
 	SlackAPIService slackapi.SlackAPIService
 	SlackRTMService slackapi.SlackRTMService
 
+	// TODO: Move all picking logic to a separate struct{}
 	TeamToTeamMembers map[string][]whoswho.User
 	RandomSource      rand.Source
 }
 
+const teamMatcher = `(eng)?[- ]?([a-zA-Z-]+)`
+
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
-var pickTeamRegex = regexp.MustCompile(`pick a[n]? (eng)?[- ]?([a-zA-Z-]+)`)
-var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is a[n]? ([a-zA-Z-]+)`)
+var pickTeamRegex = regexp.MustCompile(`pick a[n]? ` + teamMatcher)
+var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is a[n]? ` + teamMatcher)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
@@ -71,9 +74,9 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 
 			// Override team
 			overrideMatch := overrideTeamRegex.FindStringSubmatch(message)
-			if len(overrideMatch) > 2 {
+			if len(overrideMatch) > 3 {
 				userID := overrideMatch[1]
-				teamName := overrideMatch[2]
+				teamName := overrideMatch[3]
 				bot.setTeamOverride(ev, userID, teamName)
 				return
 			}
@@ -122,13 +125,14 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string)
 		return
 	}
 
-	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage("It's a match! "+actualTeamName, ev.Channel))
 	teamOverridesLock.Lock()
 	teamOverrides[teamName] = append(teamOverrides[teamName], whoswho.User{SlackID: userID})
 	teamOverridesLock.Unlock()
 
 	fmt.Println("Team Overrides:")
 	fmt.Println(teamOverrides)
+
+	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("Added <@%s> to team %s!", userID, actualTeamName), ev.Channel))
 	return
 }
 
