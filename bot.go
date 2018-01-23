@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 
@@ -31,6 +32,7 @@ const teamMatcher = `(eng)?[- ]?([a-zA-Z-]+)`
 
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
 var pickTeamRegex = regexp.MustCompile(`pick a[n]? ` + teamMatcher)
+var listTeamRegex = regexp.MustCompile(`who is a[n]? ` + teamMatcher)
 var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is a[n]? ` + teamMatcher)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
@@ -67,7 +69,6 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 			teamMatch := pickTeamRegex.FindStringSubmatch(message)
 			if len(teamMatch) > 2 {
 				teamName := teamMatch[2]
-				// TODO: Return an error and handle it
 				bot.pickTeamMember(ev, teamName)
 				return
 			}
@@ -78,6 +79,14 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 				userID := overrideMatch[1]
 				teamName := overrideMatch[3]
 				bot.setTeamOverride(ev, userID, teamName)
+				return
+			}
+
+			// List team members
+			listTeamMatch := listTeamRegex.FindStringSubmatch(message)
+			if len(listTeamMatch) > 2 {
+				teamName := listTeamMatch[2]
+				bot.listTeamMembers(ev, teamName)
 				return
 			}
 
@@ -126,7 +135,7 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string)
 	}
 
 	teamOverridesLock.Lock()
-	teamOverrides[teamName] = append(teamOverrides[teamName], whoswho.User{SlackID: userID})
+	teamOverrides[actualTeamName] = append(teamOverrides[actualTeamName], whoswho.User{SlackID: userID})
 	teamOverridesLock.Unlock()
 
 	fmt.Println("Team Overrides:")
@@ -138,7 +147,7 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string)
 
 func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 	currentUser := whoswho.User{SlackID: ev.User}
-	bot.Logger.InfoD("pick-team-member", logger.M{"team": teamName, "omit-user": currentUser.Email})
+	bot.Logger.InfoD("pick-team-member", logger.M{"team": teamName, "omit-user": currentUser.SlackID})
 
 	actualTeamName, err := bot.findMatchingTeam(teamName)
 	if err != nil {
@@ -157,5 +166,30 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 	}
 
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("I choose you: <@%s>", user.SlackID), ev.Channel))
+	return
+}
+
+func (bot *Bot) listTeamMembers(ev *slack.MessageEvent, teamName string) {
+	bot.Logger.DebugD("list-team-members", logger.M{"team": teamName, "current-user": ev.User})
+	actualTeamName, err := bot.findMatchingTeam(teamName)
+	if err != nil {
+		bot.Logger.ErrorD("find-matching-team-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(couldNotFindTeam, ev.Channel))
+		return
+	}
+
+	teamMembers := append(bot.TeamToTeamMembers[actualTeamName], teamOverrides[actualTeamName]...)
+	usernames := []string{}
+	for _, t := range teamMembers {
+		info, err := bot.SlackAPIService.GetUserInfo(t.SlackID)
+		if err != nil {
+			bot.Logger.ErrorD("slack-api-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+			return
+		}
+		usernames = append(usernames, info.Name)
+	}
+	sort.Strings(usernames)
+
+	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("Team %s has the following members: %s", actualTeamName, strings.Join(usernames, ", ")), ev.Channel))
 	return
 }
