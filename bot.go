@@ -135,14 +135,26 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string)
 	}
 
 	teamOverridesLock.Lock()
-	teamOverrides[actualTeamName] = append(teamOverrides[actualTeamName], whoswho.User{SlackID: userID})
-	teamOverridesLock.Unlock()
+	defer teamOverridesLock.Unlock()
+	// Ignore if it's a dup
+	found := false
+	for _, item := range teamOverrides[actualTeamName] {
+		if item.SlackID == userID {
+			found = true
+		}
+	}
+	for _, item := range bot.TeamToTeamMembers[actualTeamName] {
+		if item.SlackID == userID {
+			found = true
+		}
+	}
 
-	fmt.Println("Team Overrides:")
-	fmt.Println(teamOverrides)
+	// Add to team
+	if !found {
+		teamOverrides[actualTeamName] = append(teamOverrides[actualTeamName], whoswho.User{SlackID: userID})
+	}
 
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("Added <@%s> to team %s!", userID, actualTeamName), ev.Channel))
-	return
 }
 
 func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
