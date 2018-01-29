@@ -34,6 +34,7 @@ var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
 var pickTeamRegex = regexp.MustCompile(`pick\s*[a]?[n]? ` + teamMatcher)
 var listTeamRegex = regexp.MustCompile(`who is\s*[a]?[n]? ` + teamMatcher)
 var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is\s*[a]?[n]? ` + teamMatcher)
+var addFlairRegex = regexp.MustCompile(`add flair (.*)`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
@@ -41,6 +42,9 @@ const pickUserProblem = "Sorry, I ran into an issue picking a user. Check my log
 
 var teamOverrides = map[string][]whoswho.User{}
 var teamOverridesLock = &sync.Mutex{}
+
+var userFlair = map[string]string{}
+var userFlairLock = &sync.Mutex{}
 
 // DecodeMessage takes a message from the Slack loop and responds appropriately
 func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
@@ -58,9 +62,9 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 
 		bot.Logger.InfoD("listening", logger.M{"message": "Saw message for", "data": info.Name, "my-name": bot.Name})
 		if info.Name == bot.Name {
-			bot.Logger.InfoD("listening", logger.M{"message": "Saw a message for me"})
 			message := result[2]
 			message = strings.Trim(message, " ")
+			bot.Logger.InfoD("listening", logger.M{"message": message})
 			if message == "" {
 				return
 			}
@@ -87,6 +91,15 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 			if len(listTeamMatch) > 2 {
 				teamName := listTeamMatch[2]
 				bot.listTeamMembers(ev, teamName)
+				return
+
+			}
+
+			// Add flair
+			addFlairMatch := addFlairRegex.FindStringSubmatch(message)
+			if len(addFlairMatch) > 1 {
+				flair := addFlairMatch[1]
+				bot.addFlair(ev, flair)
 				return
 			}
 
@@ -157,6 +170,17 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string)
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("Added <@%s> to team %s!", userID, actualTeamName), ev.Channel))
 }
 
+func (bot *Bot) addFlair(ev *slack.MessageEvent, flair string) {
+	bot.Logger.InfoD("add-flair", logger.M{"user": ev.User, "flair": flair})
+
+	userFlairLock.Lock()
+	defer userFlairLock.Unlock()
+
+	userFlair[ev.User] = flair
+
+	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("<@%s>, I like your style!", ev.User), ev.Channel))
+}
+
 func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 	currentUser := whoswho.User{SlackID: ev.User}
 	bot.Logger.InfoD("pick-team-member", logger.M{"team": teamName, "omit-user": currentUser.SlackID})
@@ -177,7 +201,14 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 		return
 	}
 
-	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("I choose you: <@%s>", user.SlackID), ev.Channel))
+	// Add flair
+	flair := userFlair[user.SlackID]
+	if flair != "" {
+		flair = " " + flair
+	}
+
+	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
+	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
 	return
 }
 
@@ -198,7 +229,14 @@ func (bot *Bot) listTeamMembers(ev *slack.MessageEvent, teamName string) {
 			bot.Logger.ErrorD("slack-api-error", logger.M{"error": err.Error(), "event-text": ev.Text})
 			return
 		}
-		usernames = append(usernames, info.Name)
+
+		// Add flair
+		flair := userFlair[t.SlackID]
+		if flair != "" {
+			flair = " " + flair
+		}
+
+		usernames = append(usernames, info.Name+flair)
 	}
 	sort.Strings(usernames)
 

@@ -198,3 +198,19 @@ func TestAddOverride(t *testing.T) {
 		whoswho.User{SlackID: "U5555"},
 	}, teamOverrides["example-team"])
 }
+
+func TestAddFlair(t *testing.T) {
+	pickabot, mocks, mockCtrl := getMockBot(t)
+	defer mockCtrl.Finish()
+
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	msg := "<@U0>, I like your style!"
+	message := makeSlackOutgoingMessage(msg)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+	mocks.SlackRTM.EXPECT().SendMessage(message)
+
+	assert.Equal(t, 0, len(userFlair))
+	assert.Equal(t, "", userFlair["U0"])
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> add flair :dance:"))
+	assert.Equal(t, ":dance:", userFlair["U0"])
+}
