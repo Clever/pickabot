@@ -110,7 +110,7 @@ func (bot *Bot) findMatchingTeam(s string) (string, error) {
 		if s == t {
 			return t, nil
 		}
-		if lev.DistanceForStrings([]rune(s), []rune(t), lev.DefaultOptions) < 3 {
+		if lev.DistanceForStrings([]rune(s), []rune(t), lev.DefaultOptions) < 5 {
 			possibles = append(possibles, t)
 		}
 	}
