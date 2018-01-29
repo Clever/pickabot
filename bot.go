@@ -31,9 +31,9 @@ type Bot struct {
 const teamMatcher = `(eng)?[- ]?([a-zA-Z-]+)`
 
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
-var pickTeamRegex = regexp.MustCompile(`pick a[n]? ` + teamMatcher)
-var listTeamRegex = regexp.MustCompile(`who is a[n]? ` + teamMatcher)
-var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is a[n]? ` + teamMatcher)
+var pickTeamRegex = regexp.MustCompile(`pick\s*[a]?[n]? ` + teamMatcher)
+var listTeamRegex = regexp.MustCompile(`who is\s*[a]?[n]? ` + teamMatcher)
+var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is\s*[a]?[n]? ` + teamMatcher)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"

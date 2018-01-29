@@ -112,48 +112,34 @@ func TestNotUnderstoodMessageForBot(t *testing.T) {
 }
 
 func TestPickTeamMember(t *testing.T) {
-	pickabot, mocks, mockCtrl := getMockBot(t)
-	defer mockCtrl.Finish()
+	for _, input := range []string{
+		// Without "eng"
+		"<@U1234> pick example-team",
+		"<@U1234> pick a example-team",
+		"<@U1234> pick an example-team",
+		// With "eng-"
+		"<@U1234> pick eng-example-team",
+		"<@U1234> pick a eng-example-team",
+		"<@U1234> pick an eng-example-team",
+		// With "eng "
+		"<@U1234> pick eng example-team",
+		"<@U1234> pick a eng example-team",
+		"<@U1234> pick an eng example-team",
+		// With text after the team name
+		"<@U1234> pick a eng-example-team for https://github.com/Clever/fake-repo/pull/1",
+	} {
+		t.Log("Input = ", input)
+		pickabot, mocks, mockCtrl := getMockBot(t)
+		defer mockCtrl.Finish()
 
-	t.Log("Works with eng-example-team (starts with `eng-`)")
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	msg := "I choose you: <@U3>"
-	message := makeSlackOutgoingMessage(msg)
-	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
-	mocks.SlackRTM.EXPECT().SendMessage(message)
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+		msg := "I choose you: <@U3>"
+		message := makeSlackOutgoingMessage(msg)
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+		mocks.SlackRTM.EXPECT().SendMessage(message)
 
-	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick a eng-example-team"))
-
-	t.Log("Works with eng example-team (includes a space)")
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	msg = "I choose you: <@U3>"
-	message = makeSlackOutgoingMessage(msg)
-	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
-	mocks.SlackRTM.EXPECT().SendMessage(message)
-
-	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick a eng example-team"))
-
-	t.Log("Works if there are words after the team name")
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	msg = "I choose you: <@U2>"
-	message = makeSlackOutgoingMessage(msg)
-	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
-	mocks.SlackRTM.EXPECT().SendMessage(message)
-
-	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick a eng-example-team for https://github.com/Clever/fake-repo/pull/1"))
-}
-
-func TestPickTeamMemberWorksWithoutEngPrefix(t *testing.T) {
-	pickabot, mocks, mockCtrl := getMockBot(t)
-	defer mockCtrl.Finish()
-
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	msg := "I choose you: <@U3>"
-	message := makeSlackOutgoingMessage(msg)
-	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
-	mocks.SlackRTM.EXPECT().SendMessage(message)
-
-	pickabot.DecodeMessage(makeSlackMessage("<@U1234> pick an example-team"))
+		pickabot.DecodeMessage(makeSlackMessage(input))
+	}
 }
 
 func TestPickTeamMemberInvalidTeam(t *testing.T) {
