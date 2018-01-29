@@ -35,6 +35,7 @@ var pickTeamRegex = regexp.MustCompile(`pick\s*[a]?[n]? ` + teamMatcher)
 var listTeamRegex = regexp.MustCompile(`who is\s*[a]?[n]? ` + teamMatcher)
 var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is\s*[a]?[n]? ` + teamMatcher)
 var addFlairRegex = regexp.MustCompile(`add flair (.*)`)
+var removeFlairRegex = regexp.MustCompile(`remove flair`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
@@ -100,6 +101,13 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 			if len(addFlairMatch) > 1 {
 				flair := addFlairMatch[1]
 				bot.addFlair(ev, flair)
+				return
+			}
+
+			// Remove flair
+			removeFlairMatch := removeFlairRegex.FindStringSubmatch(message)
+			if len(removeFlairMatch) > 0 {
+				bot.removeFlair(ev)
 				return
 			}
 
@@ -179,6 +187,17 @@ func (bot *Bot) addFlair(ev *slack.MessageEvent, flair string) {
 	userFlair[ev.User] = flair
 
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("<@%s>, I like your style!", ev.User), ev.Channel))
+}
+
+func (bot *Bot) removeFlair(ev *slack.MessageEvent) {
+	bot.Logger.InfoD("remove-flair", logger.M{"user": ev.User})
+
+	userFlairLock.Lock()
+	defer userFlairLock.Unlock()
+
+	delete(userFlair, ev.User)
+
+	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage("OK, so you don't like flair.", ev.Channel))
 }
 
 func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
