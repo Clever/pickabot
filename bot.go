@@ -31,7 +31,7 @@ type Bot struct {
 const teamMatcher = `(eng)?[- ]?([a-zA-Z-]+)`
 
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
-var pickTeamRegex = regexp.MustCompile(`pick\s*[a]?[n]? ` + teamMatcher)
+var pickTeamRegex = regexp.MustCompile(`(pick)?\s*[a]?[n]? ` + teamMatcher)
 var listTeamRegex = regexp.MustCompile(`who is\s*[a]?[n]? ` + teamMatcher)
 var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is\s*[a]?[n]? ` + teamMatcher)
 var addFlairRegex = regexp.MustCompile(`add flair (.*)`)
@@ -70,14 +70,6 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 				return
 			}
 
-			// Pick a team member
-			teamMatch := pickTeamRegex.FindStringSubmatch(message)
-			if len(teamMatch) > 2 {
-				teamName := teamMatch[2]
-				bot.pickTeamMember(ev, teamName)
-				return
-			}
-
 			// Override team
 			overrideMatch := overrideTeamRegex.FindStringSubmatch(message)
 			if len(overrideMatch) > 3 {
@@ -108,6 +100,14 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 			removeFlairMatch := removeFlairRegex.FindStringSubmatch(message)
 			if len(removeFlairMatch) > 0 {
 				bot.removeFlair(ev)
+				return
+			}
+
+			// Pick a team member
+			teamMatch := pickTeamRegex.FindStringSubmatch(message)
+			if len(teamMatch) > 3 {
+				teamName := teamMatch[3]
+				bot.pickTeamMember(ev, teamName)
 				return
 			}
 
