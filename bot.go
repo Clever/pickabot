@@ -25,23 +25,30 @@ type Bot struct {
 
 	// TODO: Move all picking logic to a separate struct{}
 	TeamToTeamMembers map[string][]whoswho.User
+	TeamOverrides     []Override
 	RandomSource      rand.Source
 }
 
 const teamMatcher = `(eng)?[- ]?([a-zA-Z-]+)`
 
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
-var pickTeamRegex = regexp.MustCompile(`(pick)?\s*[a]?[n]? ` + teamMatcher)
-var listTeamRegex = regexp.MustCompile(`who is\s*[a]?[n]? ` + teamMatcher)
-var overrideTeamRegex = regexp.MustCompile(`<@(.+?)> is\s*[a]?[n]? ` + teamMatcher)
-var addFlairRegex = regexp.MustCompile(`add flair (.*)`)
-var removeFlairRegex = regexp.MustCompile(`remove flair`)
+var pickTeamRegex = regexp.MustCompile(`^\s*pick\s*[a]?[n]?\s*` + teamMatcher)
+var listTeamRegex = regexp.MustCompile(`^\s*who is\s*[a]?[n]?\s*` + teamMatcher)
+var overrideTeamRegex = regexp.MustCompile(`^\s*<@(.+?)> is\s*(not)?\s*[a]?[n]? ` + teamMatcher)
+var overrideTeamRegex2 = regexp.MustCompile(`^\s*(add|remove)\s+<@(.+?)>\s+(to|from)\s+` + teamMatcher)
+var addFlairRegex = regexp.MustCompile(`^\s*add flair (.*)`)
+var removeFlairRegex = regexp.MustCompile(`^\s*remove flair`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
 const pickUserProblem = "Sorry, I ran into an issue picking a user. Check my logs for more details :sleuth_or_spy:"
 
-var teamOverrides = map[string][]whoswho.User{}
+type Override struct {
+	User        whoswho.User
+	Team        string
+	AddOrRemove bool // true = added, false = removed
+}
+
 var teamOverridesLock = &sync.Mutex{}
 
 var userFlair = map[string]string{}
@@ -72,10 +79,20 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 
 			// Override team
 			overrideMatch := overrideTeamRegex.FindStringSubmatch(message)
-			if len(overrideMatch) > 3 {
+			if len(overrideMatch) > 4 {
 				userID := overrideMatch[1]
-				teamName := overrideMatch[3]
-				bot.setTeamOverride(ev, userID, teamName)
+				addOrRemove := overrideMatch[2] != "not"
+				teamName := overrideMatch[4]
+				bot.setTeamOverride(ev, userID, teamName, addOrRemove)
+				return
+			}
+			// Override team (alternate matcher)
+			overrideMatch2 := overrideTeamRegex2.FindStringSubmatch(message)
+			if len(overrideMatch2) > 5 {
+				userID := overrideMatch2[2]
+				addOrRemove := overrideMatch2[1] == "add"
+				teamName := overrideMatch2[5]
+				bot.setTeamOverride(ev, userID, teamName, addOrRemove)
 				return
 			}
 
@@ -105,8 +122,8 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 
 			// Pick a team member
 			teamMatch := pickTeamRegex.FindStringSubmatch(message)
-			if len(teamMatch) > 3 {
-				teamName := teamMatch[3]
+			if len(teamMatch) > 2 {
+				teamName := teamMatch[2]
 				bot.pickTeamMember(ev, teamName)
 				return
 			}
@@ -145,8 +162,8 @@ func (bot *Bot) findMatchingTeam(s string) (string, error) {
 
 }
 
-func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string) {
-	bot.Logger.InfoD("set-team-override", logger.M{"user": userID, "team": teamName})
+func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string, addOrRemove bool) {
+	bot.Logger.InfoD("set-team-override", logger.M{"user": userID, "team": teamName, "add-or-remove": addOrRemove})
 
 	actualTeamName, err := bot.findMatchingTeam(teamName)
 	if err != nil {
@@ -157,25 +174,31 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string)
 
 	teamOverridesLock.Lock()
 	defer teamOverridesLock.Unlock()
-	// Ignore if it's a dup
-	found := false
-	for _, item := range teamOverrides[actualTeamName] {
-		if item.SlackID == userID {
-			found = true
+
+	// Remove user override for the current team, if already present
+	foundIdx := -1
+	for idx, o := range bot.TeamOverrides {
+		if o.User.SlackID == userID && o.Team == actualTeamName {
+			foundIdx = idx
+			break
 		}
 	}
-	for _, item := range bot.TeamToTeamMembers[actualTeamName] {
-		if item.SlackID == userID {
-			found = true
-		}
+	if foundIdx > -1 {
+		// remove current entry
+		bot.TeamOverrides = append(bot.TeamOverrides[:foundIdx], bot.TeamOverrides[foundIdx+1:]...)
 	}
 
-	// Add to team
-	if !found {
-		teamOverrides[actualTeamName] = append(teamOverrides[actualTeamName], whoswho.User{SlackID: userID})
-	}
+	bot.TeamOverrides = append(bot.TeamOverrides, Override{
+		User:        whoswho.User{SlackID: userID},
+		Team:        actualTeamName,
+		AddOrRemove: addOrRemove,
+	})
 
-	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("Added <@%s> to team %s!", userID, actualTeamName), ev.Channel))
+	if addOrRemove {
+		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("Added <@%s> to team %s!", userID, actualTeamName), ev.Channel))
+	} else {
+		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("Removed <@%s> from team %s!", userID, actualTeamName), ev.Channel))
+	}
 }
 
 func (bot *Bot) addFlair(ev *slack.MessageEvent, flair string) {
@@ -211,7 +234,7 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 		return
 	}
 
-	teamMembers := append(bot.TeamToTeamMembers[actualTeamName], teamOverrides[actualTeamName]...)
+	teamMembers := bot.buildTeam(actualTeamName)
 
 	user, err := pickUser(teamMembers, &currentUser, bot.RandomSource)
 	if err != nil {
@@ -231,6 +254,53 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 	return
 }
 
+func (bot *Bot) buildTeam(teamName string) []whoswho.User {
+	teamOverridesLock.Lock()
+	defer teamOverridesLock.Unlock()
+
+	teamMembers := bot.TeamToTeamMembers[teamName]
+	finalTeam := []whoswho.User{}
+
+	// Remove some members
+	for _, user := range teamMembers {
+		includeUser := true
+		for _, override := range bot.TeamOverrides {
+			if user.SlackID == override.User.SlackID && teamName == override.Team && !override.AddOrRemove {
+				// user has been removed
+				includeUser = false
+				break
+			}
+		}
+		if includeUser {
+			finalTeam = append(finalTeam, user)
+		}
+	}
+
+	// Add some members
+	for _, override := range bot.TeamOverrides {
+		if teamName == override.Team && override.AddOrRemove {
+			finalTeam = append(finalTeam, override.User)
+		}
+	}
+
+	// De-dupe
+	dedupedTeam := []whoswho.User{}
+	for _, ft := range finalTeam {
+		alreadyInTeam := false
+		for _, dt := range dedupedTeam {
+			if dt.SlackID == ft.SlackID {
+				alreadyInTeam = true
+				break
+			}
+		}
+		if !alreadyInTeam {
+			dedupedTeam = append(dedupedTeam, ft)
+		}
+	}
+
+	return dedupedTeam
+}
+
 func (bot *Bot) listTeamMembers(ev *slack.MessageEvent, teamName string) {
 	bot.Logger.DebugD("list-team-members", logger.M{"team": teamName, "current-user": ev.User})
 	actualTeamName, err := bot.findMatchingTeam(teamName)
@@ -240,7 +310,7 @@ func (bot *Bot) listTeamMembers(ev *slack.MessageEvent, teamName string) {
 		return
 	}
 
-	teamMembers := append(bot.TeamToTeamMembers[actualTeamName], teamOverrides[actualTeamName]...)
+	teamMembers := bot.buildTeam(actualTeamName)
 	usernames := []string{}
 	for _, t := range teamMembers {
 		info, err := bot.SlackAPIService.GetUserInfo(t.SlackID)

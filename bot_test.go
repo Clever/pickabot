@@ -125,14 +125,6 @@ func TestPickTeamMember(t *testing.T) {
 		"<@U1234> pick eng example-team",
 		"<@U1234> pick a eng example-team",
 		"<@U1234> pick an eng example-team",
-		// Without pick
-		"<@U1234> eng example-team",
-		"<@U1234> a eng example-team",
-		"<@U1234> an eng example-team",
-		// Without pick, with text after team name
-		"<@U1234> eng example-team for X",
-		"<@U1234> a eng example-team for Y",
-		"<@U1234> an eng example-team for Z",
 		// With text after the team name
 		"<@U1234> pick a eng-example-team for https://github.com/Clever/fake-repo/pull/1",
 	} {
@@ -193,18 +185,130 @@ func TestAddOverride(t *testing.T) {
 	pickabot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
+	t.Log("Can set override to add a user to a team")
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := "Added <@U5555> to team example-team!"
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 	mocks.SlackRTM.EXPECT().SendMessage(message)
 
-	assert.Equal(t, 0, len(teamOverrides))
-	assert.Equal(t, []whoswho.User(nil), teamOverrides["example-team"])
+	assert.Equal(t, 0, len(pickabot.TeamOverrides))
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> <@U5555> is an eng-example-team"))
-	assert.Equal(t, []whoswho.User{
-		whoswho.User{SlackID: "U5555"},
-	}, teamOverrides["example-team"])
+	assert.Equal(t, []Override{
+		Override{
+			User:        whoswho.User{SlackID: "U5555"},
+			Team:        "example-team",
+			AddOrRemove: true,
+		},
+	}, pickabot.TeamOverrides)
+
+	t.Log("Can set override to remove a user from a team")
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	msg2 := "Removed <@U7777> from team example-team!"
+	message2 := makeSlackOutgoingMessage(msg2)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg2, testChannel).Return(message2)
+	mocks.SlackRTM.EXPECT().SendMessage(message2)
+
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> <@U7777> is not eng-example-team"))
+	assert.Equal(t, []Override{
+		Override{
+			User:        whoswho.User{SlackID: "U5555"},
+			Team:        "example-team",
+			AddOrRemove: true,
+		},
+		Override{
+			User:        whoswho.User{SlackID: "U7777"},
+			Team:        "example-team",
+			AddOrRemove: false,
+		},
+	}, pickabot.TeamOverrides)
+
+	t.Log("Can update a user's override")
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	msg3 := "Added <@U7777> to team example-team!"
+	message3 := makeSlackOutgoingMessage(msg3)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg3, testChannel).Return(message3)
+	mocks.SlackRTM.EXPECT().SendMessage(message3)
+
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> <@U7777> is an eng-example-team"))
+	assert.Equal(t, []Override{
+		Override{
+			User:        whoswho.User{SlackID: "U5555"},
+			Team:        "example-team",
+			AddOrRemove: true,
+		},
+		Override{
+			User:        whoswho.User{SlackID: "U7777"},
+			Team:        "example-team",
+			AddOrRemove: true,
+		},
+	}, pickabot.TeamOverrides)
+
+}
+
+func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
+	pickabot, mocks, mockCtrl := getMockBot(t)
+	defer mockCtrl.Finish()
+
+	t.Log("Can set override to add a user to a team")
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	msg := "Added <@U5555> to team example-team!"
+	message := makeSlackOutgoingMessage(msg)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+	mocks.SlackRTM.EXPECT().SendMessage(message)
+
+	assert.Equal(t, 0, len(pickabot.TeamOverrides))
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> add <@U5555> to eng-example-team"))
+	assert.Equal(t, []Override{
+		Override{
+			User:        whoswho.User{SlackID: "U5555"},
+			Team:        "example-team",
+			AddOrRemove: true,
+		},
+	}, pickabot.TeamOverrides)
+
+	t.Log("Can set override to remove a user from a team")
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	msg2 := "Removed <@U7777> from team example-team!"
+	message2 := makeSlackOutgoingMessage(msg2)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg2, testChannel).Return(message2)
+	mocks.SlackRTM.EXPECT().SendMessage(message2)
+
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> remove <@U7777> from eng-example-team"))
+	assert.Equal(t, []Override{
+		Override{
+			User:        whoswho.User{SlackID: "U5555"},
+			Team:        "example-team",
+			AddOrRemove: true,
+		},
+		Override{
+			User:        whoswho.User{SlackID: "U7777"},
+			Team:        "example-team",
+			AddOrRemove: false,
+		},
+	}, pickabot.TeamOverrides)
+
+	t.Log("Can update a user's override")
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	msg3 := "Added <@U7777> to team example-team!"
+	message3 := makeSlackOutgoingMessage(msg3)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg3, testChannel).Return(message3)
+	mocks.SlackRTM.EXPECT().SendMessage(message3)
+
+	pickabot.DecodeMessage(makeSlackMessage("<@U1234> add <@U7777> to eng-example-team"))
+	assert.Equal(t, []Override{
+		Override{
+			User:        whoswho.User{SlackID: "U5555"},
+			Team:        "example-team",
+			AddOrRemove: true,
+		},
+		Override{
+			User:        whoswho.User{SlackID: "U7777"},
+			Team:        "example-team",
+			AddOrRemove: true,
+		},
+	}, pickabot.TeamOverrides)
+
 }
 
 func TestAddFlair(t *testing.T) {

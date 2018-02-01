@@ -60,10 +60,12 @@ func main() {
 	}
 
 	for teamName, users := range teams {
-		fmt.Println("TEAM:", teamName)
+		fmt.Printf("team=%s has members: ", teamName)
+		userText := []string{}
 		for _, u := range users {
-			fmt.Printf("\t%s %s (%s)\n", u.FirstName, u.LastName, u.SlackID)
+			userText = append(userText, fmt.Sprintf("%s %s (%s)", u.FirstName, u.LastName, u.SlackID))
 		}
+		fmt.Println(strings.Join(userText, ", "))
 	}
 
 	pickabot := &Bot{
