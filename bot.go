@@ -43,6 +43,7 @@ const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
 const pickUserProblem = "Sorry, I ran into an issue picking a user. Check my logs for more details :sleuth_or_spy:"
 
+// Override denotes a team override where as user should (not) be included on a team
 type Override struct {
 	User        whoswho.User
 	Team        string
