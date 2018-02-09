@@ -100,9 +100,9 @@ func buildTeams() (map[string][]whoswho.User, []Override, error) {
 		// Add overrides from who-is-who
 		for _, to := range u.Pickabot.TeamOverrides {
 			overrides = append(overrides, Override{
-				User:        u,
-				Team:        to.Team,
-				AddOrRemove: to.AddOrRemove == "add",
+				User:    u,
+				Team:    to.Team,
+				Include: to.Include,
 			})
 		}
 

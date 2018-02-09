@@ -196,9 +196,9 @@ func TestAddOverride(t *testing.T) {
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> <@U5555> is an eng-example-team"))
 	assert.Equal(t, []Override{
 		Override{
-			User:        whoswho.User{SlackID: "U5555"},
-			Team:        "example-team",
-			AddOrRemove: true,
+			User:    whoswho.User{SlackID: "U5555"},
+			Team:    "example-team",
+			Include: true,
 		},
 	}, pickabot.TeamOverrides)
 
@@ -212,14 +212,14 @@ func TestAddOverride(t *testing.T) {
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> <@U7777> is not eng-example-team"))
 	assert.Equal(t, []Override{
 		Override{
-			User:        whoswho.User{SlackID: "U5555"},
-			Team:        "example-team",
-			AddOrRemove: true,
+			User:    whoswho.User{SlackID: "U5555"},
+			Team:    "example-team",
+			Include: true,
 		},
 		Override{
-			User:        whoswho.User{SlackID: "U7777"},
-			Team:        "example-team",
-			AddOrRemove: false,
+			User:    whoswho.User{SlackID: "U7777"},
+			Team:    "example-team",
+			Include: false,
 		},
 	}, pickabot.TeamOverrides)
 
@@ -233,14 +233,14 @@ func TestAddOverride(t *testing.T) {
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> <@U7777> is an eng-example-team"))
 	assert.Equal(t, []Override{
 		Override{
-			User:        whoswho.User{SlackID: "U5555"},
-			Team:        "example-team",
-			AddOrRemove: true,
+			User:    whoswho.User{SlackID: "U5555"},
+			Team:    "example-team",
+			Include: true,
 		},
 		Override{
-			User:        whoswho.User{SlackID: "U7777"},
-			Team:        "example-team",
-			AddOrRemove: true,
+			User:    whoswho.User{SlackID: "U7777"},
+			Team:    "example-team",
+			Include: true,
 		},
 	}, pickabot.TeamOverrides)
 
@@ -261,9 +261,9 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> add <@U5555> to eng-example-team"))
 	assert.Equal(t, []Override{
 		Override{
-			User:        whoswho.User{SlackID: "U5555"},
-			Team:        "example-team",
-			AddOrRemove: true,
+			User:    whoswho.User{SlackID: "U5555"},
+			Team:    "example-team",
+			Include: true,
 		},
 	}, pickabot.TeamOverrides)
 
@@ -277,14 +277,14 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> remove <@U7777> from eng-example-team"))
 	assert.Equal(t, []Override{
 		Override{
-			User:        whoswho.User{SlackID: "U5555"},
-			Team:        "example-team",
-			AddOrRemove: true,
+			User:    whoswho.User{SlackID: "U5555"},
+			Team:    "example-team",
+			Include: true,
 		},
 		Override{
-			User:        whoswho.User{SlackID: "U7777"},
-			Team:        "example-team",
-			AddOrRemove: false,
+			User:    whoswho.User{SlackID: "U7777"},
+			Team:    "example-team",
+			Include: false,
 		},
 	}, pickabot.TeamOverrides)
 
@@ -298,14 +298,14 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 	pickabot.DecodeMessage(makeSlackMessage("<@U1234> add <@U7777> to eng-example-team"))
 	assert.Equal(t, []Override{
 		Override{
-			User:        whoswho.User{SlackID: "U5555"},
-			Team:        "example-team",
-			AddOrRemove: true,
+			User:    whoswho.User{SlackID: "U5555"},
+			Team:    "example-team",
+			Include: true,
 		},
 		Override{
-			User:        whoswho.User{SlackID: "U7777"},
-			Team:        "example-team",
-			AddOrRemove: true,
+			User:    whoswho.User{SlackID: "U7777"},
+			Team:    "example-team",
+			Include: true,
 		},
 	}, pickabot.TeamOverrides)
 

@@ -17,7 +17,7 @@
   branch = "pickabot-config"
   name = "github.com/Clever/who-is-who"
   packages = ["go-client"]
-  revision = "b89aab3e86121b49bf5ab2915815b5affba754e9"
+  revision = "b359efdcd7350f855457c6951acf9641460af82e"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"

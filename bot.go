@@ -45,9 +45,9 @@ const pickUserProblem = "Sorry, I ran into an issue picking a user. Check my log
 
 // Override denotes a team override where as user should (not) be included on a team
 type Override struct {
-	User        whoswho.User
-	Team        string
-	AddOrRemove bool // true = added, false = removed
+	User    whoswho.User
+	Team    string
+	Include bool // true = added, false = removed
 }
 
 var teamOverridesLock = &sync.Mutex{}
@@ -190,9 +190,9 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string,
 	}
 
 	bot.TeamOverrides = append(bot.TeamOverrides, Override{
-		User:        whoswho.User{SlackID: userID},
-		Team:        actualTeamName,
-		AddOrRemove: addOrRemove,
+		User:    whoswho.User{SlackID: userID},
+		Team:    actualTeamName,
+		Include: addOrRemove,
 	})
 
 	if addOrRemove {
@@ -266,7 +266,7 @@ func (bot *Bot) buildTeam(teamName string) []whoswho.User {
 	for _, user := range teamMembers {
 		includeUser := true
 		for _, override := range bot.TeamOverrides {
-			if user.SlackID == override.User.SlackID && teamName == override.Team && !override.AddOrRemove {
+			if user.SlackID == override.User.SlackID && teamName == override.Team && !override.Include {
 				// user has been removed
 				includeUser = false
 				break
@@ -279,7 +279,7 @@ func (bot *Bot) buildTeam(teamName string) []whoswho.User {
 
 	// Add some members
 	for _, override := range bot.TeamOverrides {
-		if teamName == override.Team && override.AddOrRemove {
+		if teamName == override.Team && override.Include {
 			finalTeam = append(finalTeam, override.User)
 		}
 	}
