@@ -24,6 +24,7 @@ type Bot struct {
 	SlackRTMService slackapi.SlackRTMService
 
 	// TODO: Move all picking logic to a separate struct{}
+	UserFlair         map[string]string
 	TeamToTeamMembers map[string][]whoswho.User
 	TeamOverrides     []Override
 	RandomSource      rand.Source
@@ -45,14 +46,12 @@ const pickUserProblem = "Sorry, I ran into an issue picking a user. Check my log
 
 // Override denotes a team override where as user should (not) be included on a team
 type Override struct {
-	User        whoswho.User
-	Team        string
-	AddOrRemove bool // true = added, false = removed
+	User    whoswho.User
+	Team    string
+	Include bool // true = added, false = removed
 }
 
 var teamOverridesLock = &sync.Mutex{}
-
-var userFlair = map[string]string{}
 var userFlairLock = &sync.Mutex{}
 
 // DecodeMessage takes a message from the Slack loop and responds appropriately
@@ -190,9 +189,9 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string,
 	}
 
 	bot.TeamOverrides = append(bot.TeamOverrides, Override{
-		User:        whoswho.User{SlackID: userID},
-		Team:        actualTeamName,
-		AddOrRemove: addOrRemove,
+		User:    whoswho.User{SlackID: userID},
+		Team:    actualTeamName,
+		Include: addOrRemove,
 	})
 
 	if addOrRemove {
@@ -208,7 +207,7 @@ func (bot *Bot) addFlair(ev *slack.MessageEvent, flair string) {
 	userFlairLock.Lock()
 	defer userFlairLock.Unlock()
 
-	userFlair[ev.User] = flair
+	bot.UserFlair[ev.User] = flair
 
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("<@%s>, I like your style!", ev.User), ev.Channel))
 }
@@ -219,7 +218,7 @@ func (bot *Bot) removeFlair(ev *slack.MessageEvent) {
 	userFlairLock.Lock()
 	defer userFlairLock.Unlock()
 
-	delete(userFlair, ev.User)
+	delete(bot.UserFlair, ev.User)
 
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage("OK, so you don't like flair.", ev.Channel))
 }
@@ -245,7 +244,7 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 	}
 
 	// Add flair
-	flair := userFlair[user.SlackID]
+	flair := bot.UserFlair[user.SlackID]
 	if flair != "" {
 		flair = " " + flair
 	}
@@ -266,7 +265,7 @@ func (bot *Bot) buildTeam(teamName string) []whoswho.User {
 	for _, user := range teamMembers {
 		includeUser := true
 		for _, override := range bot.TeamOverrides {
-			if user.SlackID == override.User.SlackID && teamName == override.Team && !override.AddOrRemove {
+			if user.SlackID == override.User.SlackID && teamName == override.Team && !override.Include {
 				// user has been removed
 				includeUser = false
 				break
@@ -279,7 +278,7 @@ func (bot *Bot) buildTeam(teamName string) []whoswho.User {
 
 	// Add some members
 	for _, override := range bot.TeamOverrides {
-		if teamName == override.Team && override.AddOrRemove {
+		if teamName == override.Team && override.Include {
 			finalTeam = append(finalTeam, override.User)
 		}
 	}
@@ -321,7 +320,7 @@ func (bot *Bot) listTeamMembers(ev *slack.MessageEvent, teamName string) {
 		}
 
 		// Add flair
-		flair := userFlair[t.SlackID]
+		flair := bot.UserFlair[t.SlackID]
 		if flair != "" {
 			flair = " " + flair
 		}

@@ -54,18 +54,9 @@ func main() {
 	slack.SetLogger(log.New(os.Stdout, "specbot: ", log.Lshortfile|log.LstdFlags))
 	api.SetDebug(false)
 
-	teams, err := buildTeams()
+	teams, overrides, userFlair, err := buildTeams()
 	if err != nil {
 		log.Fatalf("error building teams: %s", err)
-	}
-
-	for teamName, users := range teams {
-		fmt.Printf("team=%s has members: ", teamName)
-		userText := []string{}
-		for _, u := range users {
-			userText = append(userText, fmt.Sprintf("%s %s (%s)", u.FirstName, u.LastName, u.SlackID))
-		}
-		fmt.Println(strings.Join(userText, ", "))
 	}
 
 	pickabot := &Bot{
@@ -73,27 +64,55 @@ func main() {
 		Logger:            logger.New("pickabot"),
 		Name:              os.Getenv("BOT_NAME"),
 		RandomSource:      rand.NewSource(time.Now().UnixNano()),
+		UserFlair:         userFlair,
+		TeamOverrides:     overrides,
 		TeamToTeamMembers: teams,
+	}
+
+	for teamName := range teams {
+		fmt.Printf("team=%s has members: ", teamName)
+		users := pickabot.buildTeam(teamName)
+		userText := []string{}
+		for _, u := range users {
+			userText = append(userText, fmt.Sprintf("%s %s (%s)", u.FirstName, u.LastName, u.SlackID))
+		}
+		fmt.Println(strings.Join(userText, ", "))
 	}
 
 	SlackLoop(pickabot)
 }
 
-func buildTeams() (map[string][]whoswho.User, error) {
+func buildTeams() (map[string][]whoswho.User, []Override, map[string]string, error) {
 	endpoint, err := discovery.URL("who-is-who", "default")
 	if err != nil {
-		return nil, fmt.Errorf("discovery error: %s", err)
+		return nil, []Override{}, map[string]string{}, fmt.Errorf("discovery error: %s", err)
 	}
 
 	client := whoswho.NewClient(endpoint)
 	users, err := client.GetUserList()
 	if err != nil {
-		return nil, err
+		return nil, []Override{}, map[string]string{}, err
 	}
 
 	// fetch users from who-is-who
+	overrides := []Override{}
 	teams := map[string][]whoswho.User{}
+	userFlair := map[string]string{}
 	for _, u := range users {
+		// Add overrides from who-is-who
+		for _, to := range u.Pickabot.TeamOverrides {
+			overrides = append(overrides, Override{
+				User:    u,
+				Team:    to.Team,
+				Include: to.Include,
+			})
+		}
+
+		// Add flair
+		if u.Pickabot.Flair != "" {
+			userFlair[u.SlackID] = u.Pickabot.Flair
+		}
+
 		if !(strings.HasPrefix(u.Team, "Engineer") && u.Active) {
 			continue
 		}
@@ -107,5 +126,5 @@ func buildTeams() (map[string][]whoswho.User, error) {
 		teams[team] = append(teams[team], u)
 	}
 
-	return teams, nil
+	return teams, overrides, userFlair, nil
 }

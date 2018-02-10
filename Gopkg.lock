@@ -17,7 +17,7 @@
   branch = "master"
   name = "github.com/Clever/who-is-who"
   packages = ["go-client"]
-  revision = "a1f8564796bcd47cc897cb032c94d079e203323e"
+  revision = "07b861fb309acb3a22ca74923be05906dbed9aeb"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -58,8 +58,8 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "b91bfb9ebec76498946beb6af7c0230c7cc7ba6c"
-  version = "v1.2.0"
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "master"
@@ -71,25 +71,25 @@
   branch = "master"
   name = "github.com/xeipuuv/gojsonpointer"
   packages = ["."]
-  revision = "6fe8760cad3569743d51ddbb243b26f8456742dc"
+  revision = "4e3ac2762d5f479393488629ee9370b50873b3a6"
 
 [[projects]]
   branch = "master"
   name = "github.com/xeipuuv/gojsonreference"
   packages = ["."]
-  revision = "e02fc20de94c78484cd5ffb007f8af96be030a45"
+  revision = "bd5ef7bd5415a7ac448318e64f11a24cd21e594b"
 
 [[projects]]
   branch = "master"
   name = "github.com/xeipuuv/gojsonschema"
   packages = ["."]
-  revision = "511d08a359d14c0dd9c4302af52ee9abb6f93c2a"
+  revision = "8bcffc811467a5f691810420385be6e66b35a317"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["websocket"]
-  revision = "5ccada7d0a7ba9aeb5d3aca8d3501b4c2a509fec"
+  revision = "f5dfe339be1d06f81b22525fe34671ee7d2c8904"
 
 [[projects]]
   name = "gopkg.in/Clever/kayvee-go.v6"
@@ -106,6 +106,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "02de3c56c7097befccbdb05bbc07f62dc3896b075af2c7f86951a306b76d25cb"
+  inputs-digest = "8d07ece7a8b3f85cc51bdd4bda3bd8ae57af85289a30efcfd32affdfe69d5139"
   solver-name = "gps-cdcl"
   solver-version = 1

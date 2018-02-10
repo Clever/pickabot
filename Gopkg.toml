@@ -28,3 +28,7 @@
 [[constraint]]
   name = "github.com/nlopes/slack"
   version = "0.1.0"
+
+[[override]]
+  name = "github.com/Clever/who-is-who"
+  branch = "master"
