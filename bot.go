@@ -24,6 +24,7 @@ type Bot struct {
 	SlackRTMService slackapi.SlackRTMService
 
 	// TODO: Move all picking logic to a separate struct{}
+	UserFlair         map[string]string
 	TeamToTeamMembers map[string][]whoswho.User
 	TeamOverrides     []Override
 	RandomSource      rand.Source
@@ -51,8 +52,6 @@ type Override struct {
 }
 
 var teamOverridesLock = &sync.Mutex{}
-
-var userFlair = map[string]string{}
 var userFlairLock = &sync.Mutex{}
 
 // DecodeMessage takes a message from the Slack loop and responds appropriately
@@ -208,7 +207,7 @@ func (bot *Bot) addFlair(ev *slack.MessageEvent, flair string) {
 	userFlairLock.Lock()
 	defer userFlairLock.Unlock()
 
-	userFlair[ev.User] = flair
+	bot.UserFlair[ev.User] = flair
 
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("<@%s>, I like your style!", ev.User), ev.Channel))
 }
@@ -219,7 +218,7 @@ func (bot *Bot) removeFlair(ev *slack.MessageEvent) {
 	userFlairLock.Lock()
 	defer userFlairLock.Unlock()
 
-	delete(userFlair, ev.User)
+	delete(bot.UserFlair, ev.User)
 
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage("OK, so you don't like flair.", ev.Channel))
 }
@@ -245,7 +244,7 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 	}
 
 	// Add flair
-	flair := userFlair[user.SlackID]
+	flair := bot.UserFlair[user.SlackID]
 	if flair != "" {
 		flair = " " + flair
 	}
@@ -321,7 +320,7 @@ func (bot *Bot) listTeamMembers(ev *slack.MessageEvent, teamName string) {
 		}
 
 		// Add flair
-		flair := userFlair[t.SlackID]
+		flair := bot.UserFlair[t.SlackID]
 		if flair != "" {
 			flair = " " + flair
 		}

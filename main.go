@@ -54,7 +54,7 @@ func main() {
 	slack.SetLogger(log.New(os.Stdout, "specbot: ", log.Lshortfile|log.LstdFlags))
 	api.SetDebug(false)
 
-	teams, overrides, err := buildTeams()
+	teams, overrides, userFlair, err := buildTeams()
 	if err != nil {
 		log.Fatalf("error building teams: %s", err)
 	}
@@ -64,6 +64,7 @@ func main() {
 		Logger:            logger.New("pickabot"),
 		Name:              os.Getenv("BOT_NAME"),
 		RandomSource:      rand.NewSource(time.Now().UnixNano()),
+		UserFlair:         userFlair,
 		TeamOverrides:     overrides,
 		TeamToTeamMembers: teams,
 	}
@@ -81,21 +82,22 @@ func main() {
 	SlackLoop(pickabot)
 }
 
-func buildTeams() (map[string][]whoswho.User, []Override, error) {
+func buildTeams() (map[string][]whoswho.User, []Override, map[string]string, error) {
 	endpoint, err := discovery.URL("who-is-who", "default")
 	if err != nil {
-		return nil, []Override{}, fmt.Errorf("discovery error: %s", err)
+		return nil, []Override{}, map[string]string{}, fmt.Errorf("discovery error: %s", err)
 	}
 
 	client := whoswho.NewClient(endpoint)
 	users, err := client.GetUserList()
 	if err != nil {
-		return nil, []Override{}, err
+		return nil, []Override{}, map[string]string{}, err
 	}
 
 	// fetch users from who-is-who
 	overrides := []Override{}
 	teams := map[string][]whoswho.User{}
+	userFlair := map[string]string{}
 	for _, u := range users {
 		// Add overrides from who-is-who
 		for _, to := range u.Pickabot.TeamOverrides {
@@ -104,6 +106,11 @@ func buildTeams() (map[string][]whoswho.User, []Override, error) {
 				Team:    to.Team,
 				Include: to.Include,
 			})
+		}
+
+		// Add flair
+		if u.Pickabot.Flair != "" {
+			userFlair[u.SlackID] = u.Pickabot.Flair
 		}
 
 		if !(strings.HasPrefix(u.Team, "Engineer") && u.Active) {
@@ -119,5 +126,5 @@ func buildTeams() (map[string][]whoswho.User, []Override, error) {
 		teams[team] = append(teams[team], u)
 	}
 
-	return teams, overrides, nil
+	return teams, overrides, userFlair, nil
 }
