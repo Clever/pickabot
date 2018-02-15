@@ -2,6 +2,7 @@ run:
   type: docker
 env:
 - SLACK_ACCESS_TOKEN
+- GITHUB_API_TOKEN
 - BOT_NAME
 resources:
   cpu: 0.0
