@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -10,11 +11,17 @@ import (
 
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/slackapi"
+	"github.com/google/go-github/github"
 	"github.com/nlopes/slack"
+	"golang.org/x/oauth2"
 
 	"github.com/Clever/discovery-go"
 	whoswho "github.com/Clever/who-is-who/go-client"
 )
+
+// Github's rate limit for authenticated requests is 5000 QPH = 83.3 QPM = 1.38 QPS = 720ms/query
+// We also use a global limiter to prevent concurrent requests, which trigger Github's abuse detection
+var githubLimiter = time.NewTicker(720 * time.Millisecond)
 
 // SlackLoop is the main Slack loop for specbot, to listen for commands
 func SlackLoop(s *Bot) {
@@ -59,7 +66,19 @@ func main() {
 		log.Fatalf("error building teams: %s", err)
 	}
 
+	if os.Getenv("GITHUB_API_TOKEN") == "" {
+		log.Fatalf("GITHUB_API_TOKEN env var is not set. In order to use pickabot, create a token (https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/) then set the env var.")
+	}
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("GITHUB_API_TOKEN")},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	githubClient := github.NewClient(tc)
+
 	pickabot := &Bot{
+		GithubClient:      githubClient,
+		GithubRateLimiter: githubLimiter,
 		SlackAPIService:   &slackapi.SlackAPIServer{Api: api},
 		Logger:            logger.New("pickabot"),
 		Name:              os.Getenv("BOT_NAME"),

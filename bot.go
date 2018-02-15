@@ -1,16 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/slackapi"
 	whoswho "github.com/Clever/who-is-who/go-client"
+	"github.com/google/go-github/github"
 	"github.com/nlopes/slack"
 	lev "github.com/texttheater/golang-levenshtein/levenshtein"
 )
@@ -20,8 +23,10 @@ type Bot struct {
 	Name   string
 	Logger logger.KayveeLogger
 
-	SlackAPIService slackapi.SlackAPIService
-	SlackRTMService slackapi.SlackRTMService
+	GithubClient      *github.Client
+	GithubRateLimiter *time.Ticker
+	SlackAPIService   slackapi.SlackAPIService
+	SlackRTMService   slackapi.SlackRTMService
 
 	// TODO: Move all picking logic to a separate struct{}
 	UserFlair         map[string]string
@@ -251,6 +256,38 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 
 	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
+	bot.setReviewer(ev, user)
+	return
+}
+
+func (bot *Bot) setReviewer(ev *slack.MessageEvent, user whoswho.User) {
+	if user.Github == "" {
+		return
+	}
+	var reposWithReviewerSet []string
+	prs := parseMessageForPRs(ev.Text)
+	reviewerRequest := github.ReviewersRequest{
+		Reviewers: []string{user.Github},
+	}
+	for _, pr := range prs {
+		<-bot.GithubRateLimiter.C
+		_, _, err := bot.GithubClient.PullRequests.RequestReviewers(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, reviewerRequest)
+		if err != nil {
+			bot.Logger.ErrorD("set-reviewer-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+			continue
+		}
+		_, _, err = bot.GithubClient.Issues.AddAssignees(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
+		if err != nil {
+			bot.Logger.ErrorD("set-assignee-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+		} else {
+			reposWithReviewerSet = append(reposWithReviewerSet, pr.Repo)
+		}
+	}
+
+	if len(reposWithReviewerSet) > 0 {
+		bot.Logger.InfoD("set-reviewer-success", logger.M{"repos": reposWithReviewerSet, "event-text": ev.Text})
+	}
+
 	return
 }
 
