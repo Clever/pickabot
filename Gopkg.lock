@@ -17,7 +17,7 @@
   branch = "master"
   name = "github.com/Clever/who-is-who"
   packages = ["go-client"]
-  revision = "07b861fb309acb3a22ca74923be05906dbed9aeb"
+  revision = "6ae5294b8f70c8e8a76f13292fbb708f101dbe74"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"

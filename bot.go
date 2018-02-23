@@ -28,6 +28,7 @@ type Bot struct {
 	TeamToTeamMembers map[string][]whoswho.User
 	TeamOverrides     []Override
 	RandomSource      rand.Source
+	WhoIsWhoClient    whoswho.Client
 }
 
 const teamMatcher = `(eng)?[- ]?([a-zA-Z-]+)`
@@ -201,15 +202,32 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string,
 	}
 }
 
+func (bot *Bot) updateFlairInWhoIsWho(slackID, flair string) {
+	// If user is in WIW update it,
+	user, err := bot.WhoIsWhoClient.UserBySlackID(slackID)
+	if err != nil {
+		bot.Logger.ErrorD("add-flair-wiw-user-by-slack", logger.M{"user": slackID, "flair": flair, "error": err.Error()})
+		return
+	}
+
+	user.Pickabot.Flair = flair
+	_, err = bot.WhoIsWhoClient.UpsertUser("pickabot", user)
+	if err != nil {
+		bot.Logger.ErrorD("add-flair-wiw-upsert-user", logger.M{"user": slackID, "flair": flair, "error": err.Error()})
+		return
+	}
+}
+
 func (bot *Bot) addFlair(ev *slack.MessageEvent, flair string) {
 	bot.Logger.InfoD("add-flair", logger.M{"user": ev.User, "flair": flair})
 
 	userFlairLock.Lock()
 	defer userFlairLock.Unlock()
 
-	bot.UserFlair[ev.User] = flair
-
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("<@%s>, I like your style!", ev.User), ev.Channel))
+
+	bot.UserFlair[ev.User] = flair
+	bot.updateFlairInWhoIsWho(ev.User, flair)
 }
 
 func (bot *Bot) removeFlair(ev *slack.MessageEvent) {
@@ -218,9 +236,10 @@ func (bot *Bot) removeFlair(ev *slack.MessageEvent) {
 	userFlairLock.Lock()
 	defer userFlairLock.Unlock()
 
-	delete(bot.UserFlair, ev.User)
-
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage("OK, so you don't like flair.", ev.Channel))
+
+	delete(bot.UserFlair, ev.User)
+	bot.updateFlairInWhoIsWho(ev.User, "")
 }
 
 func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
