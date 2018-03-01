@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/slackapi"
@@ -163,6 +164,42 @@ func (bot *Bot) findMatchingTeam(s string) (string, error) {
 
 }
 
+func (bot *Bot) setTeamOverrideInWhoIsWho(slackID, team string, include bool, until time.Time) {
+	// If user is in WIW update it,
+	user, err := bot.WhoIsWhoClient.UserBySlackID(slackID)
+	if err != nil {
+		bot.Logger.ErrorD("set-team-override-wiw-user-by-slack", logger.M{"user": slackID, "error": err.Error()})
+		return
+	}
+
+	o := whoswho.PickabotTeamOverride{
+		Team:    team,
+		Include: include,
+		Until:   until.Unix(),
+	}
+
+	// Remove any existing override for current team
+	foundIdx := -1
+	for idx, override := range user.Pickabot.TeamOverrides {
+		if override.Team == team {
+			foundIdx = idx
+		}
+	}
+	if foundIdx > -1 {
+		// remove current entry
+		user.Pickabot.TeamOverrides = append(user.Pickabot.TeamOverrides[:foundIdx], user.Pickabot.TeamOverrides[foundIdx+1:]...)
+	}
+
+	// Add override
+	user.Pickabot.TeamOverrides = append(user.Pickabot.TeamOverrides, o)
+
+	_, err = bot.WhoIsWhoClient.UpsertUser("pickabot", user)
+	if err != nil {
+		bot.Logger.ErrorD("set-team-override-wiw-upsert-user", logger.M{"user": slackID, "error": err.Error()})
+		return
+	}
+}
+
 func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string, addOrRemove bool) {
 	bot.Logger.InfoD("set-team-override", logger.M{"user": userID, "team": teamName, "add-or-remove": addOrRemove})
 
@@ -194,6 +231,8 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string,
 		Team:    actualTeamName,
 		Include: addOrRemove,
 	})
+
+	bot.setTeamOverrideInWhoIsWho(userID, actualTeamName, addOrRemove, time.Time{})
 
 	if addOrRemove {
 		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("Added <@%s> to team %s!", userID, actualTeamName), ev.Channel))

@@ -31,4 +31,4 @@
 
 [[override]]
   name = "github.com/Clever/who-is-who"
-  branch = "master"
+  branch = "update-go-client-pickabot"
