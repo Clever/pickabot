@@ -14,10 +14,10 @@
   version = "v6.10.0"
 
 [[projects]]
-  branch = "update-go-client-pickabot"
+  branch = "master"
   name = "github.com/Clever/who-is-who"
   packages = ["go-client"]
-  revision = "55b008c8659960820ef3f526fd6c6971410fa7a1"
+  revision = "8e8dab31c526ab9f99e2cbcf9da301c1c278c75d"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -106,6 +106,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6807230a04bd5735d29a712d0115fbb871ad71742efff0f5264a5d47ff4cb42e"
+  inputs-digest = "5d5bb1d00f1a7ec81229bddd2a893201f827b08c450ccf894652451e7abd60f2"
   solver-name = "gps-cdcl"
   solver-version = 1
