@@ -38,10 +38,10 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/google/go-github"
   packages = ["github"]
-  revision = "e48060a28fac52d0f1cb758bc8b87c07bac4a87d"
-  version = "v15.0.0"
+  revision = "1ce85f4eb585f22e22dbd214dd4610aafa516c4c"
 
 [[projects]]
   branch = "master"
@@ -112,42 +112,24 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = [
-    "context",
-    "context/ctxhttp"
-  ]
+  packages = ["context","context/ctxhttp"]
   revision = "f5dfe339be1d06f81b22525fe34671ee7d2c8904"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/oauth2"
-  packages = [
-    ".",
-    "internal"
-  ]
+  packages = [".","internal"]
   revision = "543e37812f10c46c622c9575afd7ad22f22a12ba"
 
 [[projects]]
   name = "google.golang.org/appengine"
-  packages = [
-    "internal",
-    "internal/base",
-    "internal/datastore",
-    "internal/log",
-    "internal/remote_api",
-    "internal/urlfetch",
-    "urlfetch"
-  ]
+  packages = ["internal","internal/base","internal/datastore","internal/log","internal/remote_api","internal/urlfetch","urlfetch"]
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
   version = "v1.0.0"
 
 [[projects]]
   name = "gopkg.in/Clever/kayvee-go.v6"
-  packages = [
-    ".",
-    "logger",
-    "router"
-  ]
+  packages = [".","logger","router"]
   revision = "e1e6fd8184162847c1123645e7058347a2fd3959"
   version = "v6.10.0"
 
@@ -166,6 +148,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9b91092df3b511718b135802f2fb4737423090efeacaef9d679f2a21ae4886d7"
+  inputs-digest = "9bc887a652da6fc51843111925b8b86c0cb8fa74aa57673b6b06ac5123735824"
   solver-name = "gps-cdcl"
   solver-version = 1

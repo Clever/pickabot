@@ -24,7 +24,7 @@ type Bot struct {
 	Logger  logger.KayveeLogger
 	DevMode bool
 
-	GithubClient      *github.Client
+	GithubClient      func() *github.Client
 	GithubOrgName     string
 	GithubRateLimiter *time.Ticker
 	SlackAPIService   slackapi.SlackAPIService
@@ -130,10 +130,11 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 
 			// Pick a team member
 			teamMatch := pickTeamRegex.FindStringSubmatch(message)
-			setReviewerMatch := setReviewerRegex.FindStringSubmatch(message)
+			//setReviewerMatch := setReviewerRegex.FindStringSubmatch(message)
 			if len(teamMatch) > 2 {
 				teamName := teamMatch[2]
-				bot.pickTeamMember(ev, teamName, len(setReviewerMatch) > 0)
+				//bot.pickTeamMember(ev, teamName, len(setReviewerMatch) > 0)
+				bot.pickTeamMember(ev, teamName, true)
 				return
 			}
 
@@ -271,6 +272,7 @@ func (bot *Bot) setReviewer(ev *slack.MessageEvent, user whoswho.User) {
 		bot.Logger.ErrorD("set-reviewer-error", logger.M{"error": fmt.Errorf("no valid Github account for %s", user.Email)})
 		return
 	}
+	fmt.Println(user)
 	var reposWithReviewerSet []string
 	prs := parseMessageForPRs(bot.GithubOrgName, ev.Text)
 	reviewerRequest := github.ReviewersRequest{
@@ -279,10 +281,13 @@ func (bot *Bot) setReviewer(ev *slack.MessageEvent, user whoswho.User) {
 	for _, pr := range prs {
 		var err error
 		<-bot.GithubRateLimiter.C
-		if !bot.DevMode {
-			// for our dev bot we shouldn't hit the API
-			_, _, err = bot.GithubClient.PullRequests.RequestReviewers(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, reviewerRequest)
-		}
+		//if !bot.DevMode {
+		// for our dev bot we shouldn't hit the API
+		fmt.Println(pr)
+		_, _, err = bot.GithubClient().PullRequests.RequestReviewers(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, reviewerRequest)
+		//} else {
+		//_ = bot.GithubClient()
+		//}
 		if err != nil {
 			bot.Logger.ErrorD("set-reviewer-error", logger.M{"error": err.Error(), "event-text": ev.Text})
 		} else {

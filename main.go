@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -55,6 +58,10 @@ Loop:
 	}
 }
 
+type InstallationAccessToken struct {
+	Token string `json:"token"`
+}
+
 func main() {
 
 	api := slack.New(os.Getenv("SLACK_ACCESS_TOKEN"))
@@ -66,21 +73,59 @@ func main() {
 		log.Fatalf("error building teams: %s", err)
 	}
 
-	if os.Getenv("GITHUB_API_TOKEN") == "" {
-		log.Fatalf("GITHUB_API_TOKEN env var is not set. In order to use pickabot, create a token (https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/) then set the env var.")
+	// TODO: Cleanup config
+	if os.Getenv("JWT_APP_TOKEN") == "" {
+		log.Fatalf("JWT_APP_TOKEN env var is not set.")
 	}
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_API_TOKEN")},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	githubClient := github.NewClient(tc)
+	jwtAppToken := os.Getenv("JWT_APP_TOKEN")
+	installationID := os.Getenv("INSTALLATION_ID")
+
 	devMode := os.Getenv("DEV_MODE") != "false"
 	githubOrg := os.Getenv("GITHUB_ORG_NAME")
 
 	pickabot := &Bot{
-		DevMode:           devMode,
-		GithubClient:      githubClient,
+		DevMode: devMode,
+		GithubClient: func() *github.Client {
+			// TODO: Refactor this lookup elsewhere
+			// TODO: Dont panic
+			req, err := http.NewRequest("POST", fmt.Sprintf("https://api.github.com/installations/%s/access_tokens", installationID), nil)
+			if err != nil {
+				panic(err)
+			}
+
+			client := &http.Client{}
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwtAppToken))
+			req.Header.Set("Accept", "application/vnd.github.machine-man-preview+json")
+			resp, err := client.Do(req)
+			if err != nil {
+				panic(err)
+			}
+			defer resp.Body.Close()
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			if resp.StatusCode >= 400 {
+				panic(fmt.Sprint("status code =", resp.StatusCode))
+			}
+
+			fmt.Println(string(body))
+			var outputToken InstallationAccessToken
+			err = json.Unmarshal(body, &outputToken)
+			if err != nil {
+				panic(err)
+			}
+
+			githubAPIToken := outputToken.Token
+			fmt.Println("HERE!")
+			fmt.Println(outputToken)
+
+			ctx := context.Background()
+			ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: githubAPIToken})
+			tc := oauth2.NewClient(ctx, ts)
+			return github.NewClient(tc)
+		},
 		GithubOrgName:     githubOrg,
 		GithubRateLimiter: githubLimiter,
 		SlackAPIService:   &slackapi.SlackAPIServer{Api: api},
