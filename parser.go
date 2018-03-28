@@ -1,14 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"mvdan.cc/xurls"
 )
-
-// For now we will only match repos owned by Clever
-var githubURLMatcher, _ = xurls.StrictMatchingScheme("github.com/Clever")
 
 type githubPR struct {
 	Owner    string
@@ -16,8 +14,9 @@ type githubPR struct {
 	PRNumber int
 }
 
-func parseMessageForPRs(message string) []githubPR {
+func parseMessageForPRs(githubOrg, message string) []githubPR {
 	var prs []githubPR
+	githubURLMatcher, _ := xurls.StrictMatchingScheme(fmt.Sprintf("github.com/%s", githubOrg))
 	urls := githubURLMatcher.FindAllString(message, -1)
 
 	for _, url := range urls {

@@ -3,6 +3,8 @@ run:
 env:
 - SLACK_ACCESS_TOKEN
 - GITHUB_API_TOKEN
+- GITHUB_ORG_NAME
+- DEV_MODE
 - BOT_NAME
 resources:
   cpu: 0.0

@@ -75,9 +75,13 @@ func main() {
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	githubClient := github.NewClient(tc)
+	devMode := os.Getenv("DEV_MODE") != "false"
+	githubOrg := os.Getenv("GITHUB_ORG_NAME")
 
 	pickabot := &Bot{
+		DevMode:           devMode,
 		GithubClient:      githubClient,
+		GithubOrgName:     githubOrg,
 		GithubRateLimiter: githubLimiter,
 		SlackAPIService:   &slackapi.SlackAPIServer{Api: api},
 		Logger:            logger.New("pickabot"),
