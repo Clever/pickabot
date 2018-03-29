@@ -30,6 +30,14 @@
   branch = "master"
 
 [[constraint]]
+  name = "github.com/knq/jwt"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/knq/pemutil"
+  branch = "master"
+
+[[constraint]]
   name = "github.com/nlopes/slack"
   version = "0.2.0"
 

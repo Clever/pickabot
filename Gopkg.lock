@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/Clever/discovery-go"
-  packages = ["."]
-  revision = "b2114f3bdf1c55f030cf6d6d457478ccb18b9e9c"
-  version = "v1.7.1"
-
-[[projects]]
   name = "github.com/Clever/kayvee-go"
   packages = ["logger"]
   revision = "e1e6fd8184162847c1123645e7058347a2fd3959"
@@ -66,6 +60,18 @@
   name = "github.com/hashicorp/go-retryablehttp"
   packages = ["."]
   revision = "794af36148bf63c118d6db80eb902a136b907e71"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/knq/jwt"
+  packages = ["."]
+  revision = "d1c794f15482298402d03a9bfde253804e55cc25"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/knq/pemutil"
+  packages = ["."]
+  revision = "e7ebaf079fb4b0fc071be79e23c25bc41ee283e9"
 
 [[projects]]
   name = "github.com/nlopes/slack"
@@ -128,6 +134,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "gopkg.in/Clever/discovery-go.v1"
+  packages = ["."]
+  revision = "b2114f3bdf1c55f030cf6d6d457478ccb18b9e9c"
+  version = "v1.7.1"
+
+[[projects]]
   name = "gopkg.in/Clever/kayvee-go.v6"
   packages = [".","logger","router"]
   revision = "e1e6fd8184162847c1123645e7058347a2fd3959"
@@ -148,6 +160,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9bc887a652da6fc51843111925b8b86c0cb8fa74aa57673b6b06ac5123735824"
+  inputs-digest = "5db06ea0959d61e91ffe29cd1f74b04d40b800b2ab2ab4979b2ee3e640c236c3"
   solver-name = "gps-cdcl"
   solver-version = 1
