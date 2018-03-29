@@ -46,7 +46,7 @@ var overrideTeamRegex = regexp.MustCompile(`^\s*<@(.+?)> is\s*(not)?\s*[a]?[n]? 
 var overrideTeamRegex2 = regexp.MustCompile(`^\s*(add|remove)\s+<@(.+?)>\s+(to|from)\s+` + teamMatcher)
 var addFlairRegex = regexp.MustCompile(`^\s*add flair (.*)`)
 var removeFlairRegex = regexp.MustCompile(`^\s*remove flair`)
-var setReviewerRegex = regexp.MustCompile(`.*assign.*`)
+var setAssigneeRegex = regexp.MustCompile(`.*assign.*`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
@@ -130,11 +130,10 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 
 			// Pick a team member
 			teamMatch := pickTeamRegex.FindStringSubmatch(message)
-			//setReviewerMatch := setReviewerRegex.FindStringSubmatch(message)
+			setAssigneeMatch := setAssigneeRegex.FindStringSubmatch(message)
 			if len(teamMatch) > 2 {
 				teamName := teamMatch[2]
-				//bot.pickTeamMember(ev, teamName, len(setReviewerMatch) > 0)
-				bot.pickTeamMember(ev, teamName, true)
+				bot.pickTeamMember(ev, teamName, len(setAssigneeMatch) > 0)
 				return
 			}
 
@@ -233,7 +232,7 @@ func (bot *Bot) removeFlair(ev *slack.MessageEvent) {
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage("OK, so you don't like flair.", ev.Channel))
 }
 
-func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string, setReviewer bool) {
+func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string, setAssignee bool) {
 	currentUser := whoswho.User{SlackID: ev.User}
 	bot.Logger.InfoD("pick-team-member", logger.M{"team": teamName, "omit-user": currentUser.SlackID})
 
@@ -261,42 +260,35 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string, setRevie
 
 	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
-	if setReviewer {
-		bot.setReviewer(ev, user)
+	if setAssignee {
+		bot.setAssignee(ev, user)
 	}
 	return
 }
 
-func (bot *Bot) setReviewer(ev *slack.MessageEvent, user whoswho.User) {
+func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
 	if user.Github == "" {
-		bot.Logger.ErrorD("set-reviewer-error", logger.M{"error": fmt.Errorf("no valid Github account for %s", user.Email)})
+		bot.Logger.ErrorD("set-assignee-error", logger.M{"error": fmt.Errorf("no valid Github account for %s", user.Email)})
 		return
 	}
-	fmt.Println(user)
-	var reposWithReviewerSet []string
+	var reposWithAssigneeSet []string
 	prs := parseMessageForPRs(bot.GithubOrgName, ev.Text)
-	reviewerRequest := github.ReviewersRequest{
-		Reviewers: []string{user.Github},
-	}
 	for _, pr := range prs {
 		var err error
 		<-bot.GithubRateLimiter.C
-		//if !bot.DevMode {
-		// for our dev bot we shouldn't hit the API
-		fmt.Println(pr)
-		_, _, err = bot.GithubClient().PullRequests.RequestReviewers(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, reviewerRequest)
-		//} else {
-		//_ = bot.GithubClient()
-		//}
+		// the dev bot shouldn't hit the API
+		if !bot.DevMode {
+			_, _, err = bot.GithubClient().Issues.AddAssignees(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
+		}
 		if err != nil {
-			bot.Logger.ErrorD("set-reviewer-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+			bot.Logger.ErrorD("set-assignee-error", logger.M{"error": err.Error(), "event-text": ev.Text, "user": user.Github})
 		} else {
-			reposWithReviewerSet = append(reposWithReviewerSet, pr.Repo)
+			reposWithAssigneeSet = append(reposWithAssigneeSet, pr.Repo)
 		}
 	}
 
-	if len(reposWithReviewerSet) > 0 {
-		bot.Logger.InfoD("set-reviewer-success", logger.M{"repos": reposWithReviewerSet, "event-text": ev.Text})
+	if len(reposWithAssigneeSet) > 0 {
+		bot.Logger.InfoD("set-assignee-success", logger.M{"repos": reposWithAssigneeSet, "event-text": ev.Text, "user": user.Github})
 	}
 
 	return
