@@ -41,10 +41,18 @@ var overrideTeamRegex = regexp.MustCompile(`^\s*<@(.+?)> is\s*(not)?\s*[a]?[n]? 
 var overrideTeamRegex2 = regexp.MustCompile(`^\s*(add|remove)\s+<@(.+?)>\s+(to|from)\s+` + teamMatcher)
 var addFlairRegex = regexp.MustCompile(`^\s*add flair (.*)`)
 var removeFlairRegex = regexp.MustCompile(`^\s*remove flair`)
+var helpRegex = regexp.MustCompile(`^\s*help`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
 const pickUserProblem = "Sorry, I ran into an issue picking a user. Check my logs for more details :sleuth_or_spy:"
+const helpMessage = "_Pika-pi!_\n\nI can do the following:\n\n" +
+	"`@pickabot pick a <team>` - picks a user from that team\n" +
+	"`@pickabot who is a <team>` - lists users who belong to each team\n" +
+	"`@pickabot add @user to <team>` - adds user to team\n" +
+	"`@pickabot remove @user from <team>` - removes user from team\n" +
+	"`@pickabot add flair :emoji:` - set flair that appears when you're picked\n" +
+	"`@pickabot remove flair` - remove your flair"
 
 // Override denotes a team override where as user should (not) be included on a team
 type Override struct {
@@ -76,6 +84,15 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 			message = strings.Trim(message, " ")
 			bot.Logger.InfoD("listening", logger.M{"message": message})
 			if message == "" {
+				return
+			}
+
+			// Help
+			helpMatch := helpRegex.FindStringSubmatch(message)
+			if len(helpMatch) > 0 {
+				bot.Logger.Info("help match")
+				// TODO: Print help
+				bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(helpMessage, ev.Channel))
 				return
 			}
 
