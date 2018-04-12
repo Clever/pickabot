@@ -15,8 +15,8 @@ import (
 
 // Token represents an authorization claim
 type Token struct {
-	Token      string
-	Expiration time.Time
+	Token      string    `json:"token,omitempty"`
+	Expiration time.Time `json:"expires_at,omitempty"`
 }
 
 // IsExpired returns whether the token is still valid
@@ -26,7 +26,7 @@ func (t Token) IsExpired() bool {
 	return time.Now().Add(-1 * 30 * time.Second).After(t.Expiration)
 }
 
-func (a *AppClientImpl) generateNewJWT() error {
+func (a *AppClient) generateNewJWT() error {
 	// load key
 	keyset, err := pemutil.DecodeBytes(a.PrivateKey)
 	if err != nil {
@@ -61,7 +61,7 @@ func (a *AppClientImpl) generateNewJWT() error {
 	return nil
 }
 
-func (a *AppClientImpl) generateGithubAccessToken() error {
+func (a *AppClient) generateGithubAccessToken() error {
 	// check and re-generate JWT
 	if a.jwt.IsExpired() {
 		err := a.generateNewJWT()
@@ -96,21 +96,14 @@ func (a *AppClientImpl) generateGithubAccessToken() error {
 	}
 
 	// parse response
-	type githubToken struct {
-		Token      string    `json:"token,omitempty"`
-		Expiration time.Time `json:"expires_at,omitempty"`
-	}
-	var outputToken githubToken
+	var outputToken Token
 	err = json.Unmarshal(body, &outputToken)
 	if err != nil {
 		return err
 	}
 
 	// yay we have a new token!
-	a.githubAccessToken = Token{
-		Token:      outputToken.Token,
-		Expiration: outputToken.Expiration,
-	}
+	a.githubAccessToken = outputToken
 	a.Logger.InfoD("generated-bearer-token", logger.M{"expiration": a.githubAccessToken.Expiration})
 	return nil
 }

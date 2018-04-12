@@ -24,7 +24,7 @@ type Bot struct {
 	Logger  logger.KayveeLogger
 	DevMode bool
 
-	GithubClient    github.AppClient
+	GithubClient    github.AppClientIface
 	GithubOrgName   string
 	SlackAPIService slackapi.SlackAPIService
 	SlackRTMService slackapi.SlackRTMService

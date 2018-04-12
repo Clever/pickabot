@@ -51,6 +51,13 @@ Loop:
 	}
 }
 
+func requireEnvVar(s string) string {
+	val := os.Getenv(s)
+	if val == "" {
+		log.Fatalf("env var %s is not defined", s)
+	}
+	return val
+}
 func main() {
 
 	api := slack.New(os.Getenv("SLACK_ACCESS_TOKEN"))
@@ -68,14 +75,14 @@ func main() {
 		log.Fatalf("error building teams: %s", err)
 	}
 
-	appID := os.Getenv("GITHUB_APP_ID")
-	installationID := os.Getenv("GITHUB_INSTALLATION_ID")
-	devMode := os.Getenv("DEV_MODE") != "false"
-	githubOrg := os.Getenv("GITHUB_ORG_NAME")
-	githubPrivateKey := os.Getenv("GITHUB_PRIVATE_KEY")
+	appID := requireEnvVar("GITHUB_APP_ID")
+	installationID := requireEnvVar("GITHUB_INSTALLATION_ID")
+	devMode := requireEnvVar("DEV_MODE") != "false"
+	githubOrg := requireEnvVar("GITHUB_ORG_NAME")
+	githubPrivateKey := requireEnvVar("GITHUB_PRIVATE_KEY")
 	privateKeyBytes := []byte(githubPrivateKey)
 
-	githubClient := &github.AppClientImpl{
+	githubClient := &github.AppClient{
 		AppID:          appID,
 		InstallationID: installationID,
 		Logger:         lg,
