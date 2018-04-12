@@ -32,7 +32,7 @@ type Bot struct {
 	WhoIsWhoClient    whoswho.Client
 }
 
-const teamMatcher = `(eng)?[- ]?([a-zA-Z-]+)`
+const teamMatcher = `#?(eng)?[- ]?([a-zA-Z-]+)`
 
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
 var pickTeamRegex = regexp.MustCompile(`^\s*pick\s*[a]?[n]?\s*` + teamMatcher)

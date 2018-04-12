@@ -127,6 +127,8 @@ func TestPickTeamMember(t *testing.T) {
 		"<@U1234> pick eng example-team",
 		"<@U1234> pick a eng example-team",
 		"<@U1234> pick an eng example-team",
+		// With "#"
+		"<@U1234> pick an #eng-example-team",
 		// With text after the team name
 		"<@U1234> pick a eng-example-team for https://github.com/Clever/fake-repo/pull/1",
 	} {
