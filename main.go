@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -10,23 +9,15 @@ import (
 	"time"
 
 	"github.com/Clever/kayvee-go/logger"
+	"github.com/Clever/pickabot/github"
 	"github.com/Clever/pickabot/slackapi"
-	"github.com/google/go-github/github"
 	"github.com/nlopes/slack"
-	"golang.org/x/oauth2"
 	discovery "gopkg.in/Clever/discovery-go.v1"
 
 	whoswho "github.com/Clever/who-is-who/go-client"
 )
 
-var (
-	// Github's rate limit for authenticated requests is 5000 QPH = 83.3 QPM = 1.38 QPS = 720ms/query
-	// We also use a global limiter to prevent concurrent requests, which trigger Github's abuse detection
-	githubLimiter = time.NewTicker(720 * time.Millisecond)
-
-	currentJWT         *Token
-	currentGithubToken *Token
-)
+var lg = logger.New("pickabot")
 
 // SlackLoop is the main Slack loop for specbot, to listen for commands
 func SlackLoop(s *Bot) {
@@ -75,40 +66,25 @@ func main() {
 	installationID := os.Getenv("GITHUB_INSTALLATION_ID")
 	devMode := os.Getenv("DEV_MODE") != "false"
 	githubOrg := os.Getenv("GITHUB_ORG_NAME")
+	githubPrivateKey := os.Getenv("GITHUB_PRIVATE_KEY")
+	privateKeyBytes := []byte(githubPrivateKey)
 
-	currentJWT, err = generateNewJWT(appID, "pickabot.private-key.pem")
-	if err != nil {
-		log.Fatalf("error generating JWT for GitHub access: %s", err)
+	githubClient := &github.AppClientImpl{
+		AppID:          appID,
+		InstallationID: installationID,
+		Logger:         lg,
+		PrivateKey:     privateKeyBytes,
 	}
-	currentGithubToken, err = generateGithubAccessToken(currentJWT.Token, installationID)
 	if err != nil {
-		log.Fatalf("error getting GitHub access token: %s", err)
+		log.Fatalf("error setting up github client: %s", err)
 	}
 
 	pickabot := &Bot{
-		DevMode: devMode,
-		GithubClient: func() *github.Client {
-			if currentJWT.IsExpired() {
-				currentJWT, err = generateNewJWT(appID, "pickabot.private-key.pem")
-				if err != nil {
-					log.Fatalf("error generating JWT for GitHub access: %s", err)
-				}
-			}
-			if currentGithubToken.IsExpired() {
-				currentGithubToken, err = generateGithubAccessToken(currentJWT.Token, installationID)
-				if err != nil {
-					log.Fatalf("error getting GitHub access token: %s", err)
-				}
-			}
-			ctx := context.Background()
-			ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: currentGithubToken.Token})
-			tc := oauth2.NewClient(ctx, ts)
-			return github.NewClient(tc)
-		},
+		DevMode:           devMode,
+		GithubClient:      githubClient,
 		GithubOrgName:     githubOrg,
-		GithubRateLimiter: githubLimiter,
 		SlackAPIService:   &slackapi.SlackAPIServer{Api: api},
-		Logger:            logger.New("pickabot"),
+		Logger:            lg,
 		Name:              os.Getenv("BOT_NAME"),
 		RandomSource:      rand.NewSource(time.Now().UnixNano()),
 		UserFlair:         userFlair,

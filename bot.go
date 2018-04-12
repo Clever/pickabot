@@ -8,12 +8,11 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/Clever/kayvee-go/logger"
+	"github.com/Clever/pickabot/github"
 	"github.com/Clever/pickabot/slackapi"
 	whoswho "github.com/Clever/who-is-who/go-client"
-	"github.com/google/go-github/github"
 	"github.com/nlopes/slack"
 	lev "github.com/texttheater/golang-levenshtein/levenshtein"
 )
@@ -24,11 +23,10 @@ type Bot struct {
 	Logger  logger.KayveeLogger
 	DevMode bool
 
-	GithubClient      func() *github.Client
-	GithubOrgName     string
-	GithubRateLimiter *time.Ticker
-	SlackAPIService   slackapi.SlackAPIService
-	SlackRTMService   slackapi.SlackRTMService
+	GithubClient    github.AppClient
+	GithubOrgName   string
+	SlackAPIService slackapi.SlackAPIService
+	SlackRTMService slackapi.SlackRTMService
 
 	// TODO: Move all picking logic to a separate struct{}
 	UserFlair         map[string]string
@@ -275,10 +273,11 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
 	prs := parseMessageForPRs(bot.GithubOrgName, ev.Text)
 	for _, pr := range prs {
 		var err error
-		<-bot.GithubRateLimiter.C
 		// the dev bot shouldn't hit the API
-		if !bot.DevMode {
-			_, _, err = bot.GithubClient().Issues.AddAssignees(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
+		if bot.DevMode {
+			bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("would have assigned %s to %s", user.Github, pr.Repo), ev.Channel))
+		} else {
+			_, _, err = bot.GithubClient.AddAssignees(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
 		}
 		if err != nil {
 			bot.Logger.ErrorD("set-assignee-error", logger.M{"error": err.Error(), "event-text": ev.Text, "user": user.Github})

@@ -4,8 +4,6 @@ machine:
   - $HOME/ci-scripts/circleci/golang-install 1.9
   services:
   - docker
-  environment:
-    GITHUB_API_TOKEN: x # mock api token
 checkout:
   post:
   - $HOME/ci-scripts/circleci/golang-move-project
