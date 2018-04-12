@@ -57,7 +57,13 @@ func main() {
 	slack.SetLogger(log.New(os.Stdout, "specbot: ", log.Lshortfile|log.LstdFlags))
 	api.SetDebug(false)
 
-	teams, overrides, userFlair, err := buildTeams()
+	endpoint, err := discovery.URL("who-is-who", "default")
+	if err != nil {
+		log.Fatalf("who-is-who discovery error: %s", err)
+	}
+	client := whoswho.NewClient(endpoint)
+
+	teams, overrides, userFlair, err := buildTeams(client)
 	if err != nil {
 		log.Fatalf("error building teams: %s", err)
 	}
@@ -90,6 +96,7 @@ func main() {
 		UserFlair:         userFlair,
 		TeamOverrides:     overrides,
 		TeamToTeamMembers: teams,
+		WhoIsWhoClient:    client,
 	}
 
 	for teamName := range teams {
@@ -105,13 +112,7 @@ func main() {
 	SlackLoop(pickabot)
 }
 
-func buildTeams() (map[string][]whoswho.User, []Override, map[string]string, error) {
-	endpoint, err := discovery.URL("who-is-who", "default")
-	if err != nil {
-		return nil, []Override{}, map[string]string{}, fmt.Errorf("discovery error: %s", err)
-	}
-
-	client := whoswho.NewClient(endpoint)
+func buildTeams(client whoswho.Client) (map[string][]whoswho.User, []Override, map[string]string, error) {
 	users, err := client.GetUserList()
 	if err != nil {
 		return nil, []Override{}, map[string]string{}, err
