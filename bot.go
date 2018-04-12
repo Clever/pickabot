@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Clever/kayvee-go/logger"
+	"github.com/Clever/pickabot/github"
 	"github.com/Clever/pickabot/slackapi"
 	whoswho "github.com/Clever/who-is-who/go-client"
 	"github.com/nlopes/slack"
@@ -18,9 +20,12 @@ import (
 
 // Bot is the encapsulation of the logic to respond to Slack messages, by calling out to external services
 type Bot struct {
-	Name   string
-	Logger logger.KayveeLogger
+	Name    string
+	Logger  logger.KayveeLogger
+	DevMode bool
 
+	GithubClient    github.AppClientIface
+	GithubOrgName   string
 	SlackAPIService slackapi.SlackAPIService
 	SlackRTMService slackapi.SlackRTMService
 
@@ -41,6 +46,7 @@ var overrideTeamRegex = regexp.MustCompile(`^\s*<@(.+?)> is\s*(not)?\s*[a]?[n]? 
 var overrideTeamRegex2 = regexp.MustCompile(`^\s*(add|remove)\s+<@(.+?)>\s+(to|from)\s+` + teamMatcher)
 var addFlairRegex = regexp.MustCompile(`^\s*add flair (.*)`)
 var removeFlairRegex = regexp.MustCompile(`^\s*remove flair`)
+var setAssigneeRegex = regexp.MustCompile(`.*assign.*`)
 var helpRegex = regexp.MustCompile(`^\s*help`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
@@ -141,9 +147,10 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 
 			// Pick a team member
 			teamMatch := pickTeamRegex.FindStringSubmatch(message)
+			setAssigneeMatch := setAssigneeRegex.FindStringSubmatch(message)
 			if len(teamMatch) > 2 {
 				teamName := teamMatch[2]
-				bot.pickTeamMember(ev, teamName)
+				bot.pickTeamMember(ev, teamName, len(setAssigneeMatch) > 0)
 				return
 			}
 
@@ -298,7 +305,7 @@ func (bot *Bot) removeFlair(ev *slack.MessageEvent) {
 	bot.updateFlairInWhoIsWho(ev.User, "")
 }
 
-func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
+func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string, setAssignee bool) {
 	currentUser := whoswho.User{SlackID: ev.User}
 	bot.Logger.InfoD("pick-team-member", logger.M{"team": teamName, "omit-user": currentUser.SlackID})
 
@@ -326,6 +333,38 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string) {
 
 	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
+	if setAssignee {
+		bot.setAssignee(ev, user)
+	}
+	return
+}
+
+func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
+	if user.Github == "" {
+		bot.Logger.ErrorD("set-assignee-error", logger.M{"error": fmt.Errorf("no valid Github account for %s", user.Email)})
+		return
+	}
+	var reposWithAssigneeSet []string
+	prs := parseMessageForPRs(bot.GithubOrgName, ev.Text)
+	for _, pr := range prs {
+		var err error
+		// the dev bot shouldn't hit the API
+		if bot.DevMode {
+			bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("would have assigned %s to %s", user.Github, pr.Repo), ev.Channel))
+		} else {
+			_, _, err = bot.GithubClient.AddAssignees(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
+		}
+		if err != nil {
+			bot.Logger.ErrorD("set-assignee-error", logger.M{"error": err.Error(), "event-text": ev.Text, "user": user.Github})
+		} else {
+			reposWithAssigneeSet = append(reposWithAssigneeSet, pr.Repo)
+		}
+	}
+
+	if len(reposWithAssigneeSet) > 0 {
+		bot.Logger.InfoD("set-assignee-success", logger.M{"repos": reposWithAssigneeSet, "event-text": ev.Text, "user": user.Github})
+	}
+
 	return
 }
 

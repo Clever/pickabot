@@ -1,8 +1,13 @@
 run:
   type: docker
 env:
-- SLACK_ACCESS_TOKEN
 - BOT_NAME
+- DEV_MODE
+- GITHUB_APP_ID
+- GITHUB_INSTALLATION_ID
+- GITHUB_ORG_NAME
+- GITHUB_PRIVATE_KEY
+- SLACK_ACCESS_TOKEN
 resources:
   cpu: 0.0
   max_mem: 1.1

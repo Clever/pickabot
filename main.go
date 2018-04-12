@@ -9,12 +9,15 @@ import (
 	"time"
 
 	"github.com/Clever/kayvee-go/logger"
+	"github.com/Clever/pickabot/github"
 	"github.com/Clever/pickabot/slackapi"
 	"github.com/nlopes/slack"
+	discovery "gopkg.in/Clever/discovery-go.v1"
 
-	"github.com/Clever/discovery-go"
 	whoswho "github.com/Clever/who-is-who/go-client"
 )
+
+var lg = logger.New("pickabot")
 
 // SlackLoop is the main Slack loop for specbot, to listen for commands
 func SlackLoop(s *Bot) {
@@ -48,6 +51,13 @@ Loop:
 	}
 }
 
+func requireEnvVar(s string) string {
+	val := os.Getenv(s)
+	if val == "" {
+		log.Fatalf("env var %s is not defined", s)
+	}
+	return val
+}
 func main() {
 
 	api := slack.New(os.Getenv("SLACK_ACCESS_TOKEN"))
@@ -65,9 +75,29 @@ func main() {
 		log.Fatalf("error building teams: %s", err)
 	}
 
+	appID := requireEnvVar("GITHUB_APP_ID")
+	installationID := requireEnvVar("GITHUB_INSTALLATION_ID")
+	devMode := requireEnvVar("DEV_MODE") != "false"
+	githubOrg := requireEnvVar("GITHUB_ORG_NAME")
+	githubPrivateKey := requireEnvVar("GITHUB_PRIVATE_KEY")
+	privateKeyBytes := []byte(githubPrivateKey)
+
+	githubClient := &github.AppClient{
+		AppID:          appID,
+		InstallationID: installationID,
+		Logger:         lg,
+		PrivateKey:     privateKeyBytes,
+	}
+	if err != nil {
+		log.Fatalf("error setting up github client: %s", err)
+	}
+
 	pickabot := &Bot{
+		DevMode:           devMode,
+		GithubClient:      githubClient,
+		GithubOrgName:     githubOrg,
 		SlackAPIService:   &slackapi.SlackAPIServer{Api: api},
-		Logger:            logger.New("pickabot"),
+		Logger:            lg,
 		Name:              os.Getenv("BOT_NAME"),
 		RandomSource:      rand.NewSource(time.Now().UnixNano()),
 		UserFlair:         userFlair,
