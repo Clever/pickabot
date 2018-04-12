@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Clever/catapult/logger"
+	"github.com/Clever/kayvee-go/logger"
 	"github.com/knq/jwt"
 	"github.com/knq/pemutil"
 )
