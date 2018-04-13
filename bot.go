@@ -54,7 +54,8 @@ const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
 const pickUserProblem = "Sorry, I ran into an issue picking a user. Check my logs for more details :sleuth_or_spy:"
 const helpMessage = "_Pika-pi!_\n\nI can do the following:\n\n" +
 	"`@pickabot pick a <team>` - picks a user from that team\n" +
-	"`@pickabot who is a <team>` - lists users who belong to each team\n" +
+	"`@pickabot assign a <team> for <Github PR URL(s)>` - assigns a user from that team to the Github PR(s)\n" +
+	"`@pickabot who is a <team>` - lists users who belong to that team\n" +
 	"`@pickabot add @user to <team>` - adds user to team\n" +
 	"`@pickabot remove @user from <team>` - removes user from team\n" +
 	"`@pickabot add flair :emoji:` - set flair that appears when you're picked\n" +
