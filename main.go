@@ -144,7 +144,7 @@ func buildTeams(client whoswho.Client) (map[string][]whoswho.User, []Override, m
 			userFlair[u.SlackID] = u.Pickabot.Flair
 		}
 
-		if !(strings.HasPrefix(u.Team, "Engineer") && u.Active) {
+		if !(strings.HasPrefix(u.Team, "Engineering - ") && u.Active) {
 			continue
 		}
 		// Format the team name
