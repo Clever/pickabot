@@ -19,6 +19,7 @@ var (
 // AppClientIface represents the endpoints available to a github application
 type AppClientIface interface {
 	AddAssignees(ctx context.Context, owner, repo string, number int, assignees []string) (*github.Issue, *github.Response, error)
+	AddReviewers(ctx context.Context, owner, repo string, number int, reviewers []string) (*github.PullRequest, *github.Response, error)
 }
 
 // AppClient is an implementation of the AppClientIface
@@ -40,6 +41,16 @@ func (a *AppClient) AddAssignees(ctx context.Context, owner, repo string, number
 		return &github.Issue{}, &github.Response{}, err
 	}
 	return a.client.Issues.AddAssignees(context.Background(), owner, repo, number, assignees)
+}
+
+// AddReviewers adds reviewers to a pull request
+func (a *AppClient) AddReviewers(ctx context.Context, owner, repo string, number int, reviewers []string) (*github.PullRequest, *github.Response, error) {
+	if err := a.checkClient(); err != nil {
+		return &github.PullRequest{}, &github.Response{}, err
+	}
+	return a.client.PullRequests.RequestReviewers(context.Background(), owner, repo, number, github.ReviewersRequest{
+		Reviewers: reviewers,
+	})
 }
 
 // checkClient validates the current token and re-authenticates if it needs to
