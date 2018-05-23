@@ -19,11 +19,13 @@ type Token struct {
 	Expiration time.Time `json:"expires_at,omitempty"`
 }
 
+var expirationTimeBufferDuration = 30 * time.Second
+
 // IsExpired returns whether the token is still valid
-// we give ourselves a 30 second buffer to give the subsequent requests to the Github API
+// we give ourselves a buffer to give the subsequent requests to the Github API
 // time to process
 func (t Token) IsExpired() bool {
-	return time.Now().Add(-1 * 30 * time.Second).After(t.Expiration)
+	return time.Now().Add(expirationTimeBufferDuration).After(t.Expiration)
 }
 
 func (a *AppClient) generateNewJWT() error {
