@@ -58,6 +58,7 @@ func requireEnvVar(s string) string {
 	}
 	return val
 }
+
 func main() {
 
 	api := slack.New(os.Getenv("SLACK_ACCESS_TOKEN"))
@@ -130,6 +131,10 @@ func buildTeams(client whoswho.Client) (map[string][]whoswho.User, []Override, m
 	teams := map[string][]whoswho.User{}
 	userFlair := map[string]string{}
 	for _, u := range users {
+		if !u.Active {
+			continue
+		}
+
 		// Add overrides from who-is-who
 		for _, to := range u.Pickabot.TeamOverrides {
 			overrides = append(overrides, Override{
