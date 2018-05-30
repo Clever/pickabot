@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Clever/kayvee-go/logger"
-	"github.com/Clever/pickabot/mock_slackapi"
 	whoswho "github.com/Clever/who-is-who/go-client"
 	"github.com/golang/mock/gomock"
 	"github.com/nlopes/slack"
@@ -39,14 +38,16 @@ func makeSlackOutgoingMessage(text string) *slack.OutgoingMessage {
 }
 
 type BotMocks struct {
-	SlackAPI *mock_slackapi.MockSlackAPIService
-	SlackRTM *mock_slackapi.MockSlackRTMService
+	SlackAPI       *MockSlackAPIService
+	SlackRTM       *MockSlackRTMService
+	WhoIsWhoClient *MockwhoIsWhoClientIface
 }
 
 func getMockBot(t *testing.T) (*Bot, *BotMocks, *gomock.Controller) {
 	mockCtrl := gomock.NewController(t)
-	mockSlackAPIService := mock_slackapi.NewMockSlackAPIService(mockCtrl)
-	mockSlackRTMService := mock_slackapi.NewMockSlackRTMService(mockCtrl)
+	mockSlackAPIService := NewMockSlackAPIService(mockCtrl)
+	mockSlackRTMService := NewMockSlackRTMService(mockCtrl)
+	mockWhoIsWhoClient := NewMockwhoIsWhoClientIface(mockCtrl)
 
 	mockbot := &Bot{
 		SlackAPIService: mockSlackAPIService,
@@ -65,14 +66,16 @@ func getMockBot(t *testing.T) (*Bot, *BotMocks, *gomock.Controller) {
 				whoswho.User{SlackID: testUserID},
 			},
 		},
-		Logger:       logger.New(testChannel),
-		Name:         testUserID,
-		RandomSource: rand.NewSource(0),
+		Logger:         logger.New(testChannel),
+		Name:           testUserID,
+		RandomSource:   rand.NewSource(0),
+		WhoIsWhoClient: mockWhoIsWhoClient,
 	}
 
 	return mockbot, &BotMocks{
 		mockSlackAPIService,
 		mockSlackRTMService,
+		mockWhoIsWhoClient,
 	}, mockCtrl
 }
 
@@ -199,6 +202,8 @@ func TestAddOverride(t *testing.T) {
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 	mocks.SlackRTM.EXPECT().SendMessage(message)
+	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5555")
+	mocks.WhoIsWhoClient.EXPECT().UpsertUser("pickabot", gomock.Any())
 
 	assert.Equal(t, 0, len(mockbot.TeamOverrides))
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> <@U5555> is an eng-example-team"))
@@ -216,6 +221,8 @@ func TestAddOverride(t *testing.T) {
 	message2 := makeSlackOutgoingMessage(msg2)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg2, testChannel).Return(message2)
 	mocks.SlackRTM.EXPECT().SendMessage(message2)
+	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777")
+	mocks.WhoIsWhoClient.EXPECT().UpsertUser("pickabot", gomock.Any())
 
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> <@U7777> is not eng-example-team"))
 	assert.Equal(t, []Override{
@@ -237,6 +244,8 @@ func TestAddOverride(t *testing.T) {
 	message3 := makeSlackOutgoingMessage(msg3)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg3, testChannel).Return(message3)
 	mocks.SlackRTM.EXPECT().SendMessage(message3)
+	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777")
+	mocks.WhoIsWhoClient.EXPECT().UpsertUser("pickabot", gomock.Any())
 
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> <@U7777> is an eng-example-team"))
 	assert.Equal(t, []Override{
@@ -264,6 +273,8 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 	mocks.SlackRTM.EXPECT().SendMessage(message)
+	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5555")
+	mocks.WhoIsWhoClient.EXPECT().UpsertUser("pickabot", gomock.Any())
 
 	assert.Equal(t, 0, len(mockbot.TeamOverrides))
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> add <@U5555> to eng-example-team"))
@@ -281,6 +292,8 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 	message2 := makeSlackOutgoingMessage(msg2)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg2, testChannel).Return(message2)
 	mocks.SlackRTM.EXPECT().SendMessage(message2)
+	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777")
+	mocks.WhoIsWhoClient.EXPECT().UpsertUser("pickabot", gomock.Any())
 
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> remove <@U7777> from eng-example-team"))
 	assert.Equal(t, []Override{
@@ -302,6 +315,8 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 	message3 := makeSlackOutgoingMessage(msg3)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg3, testChannel).Return(message3)
 	mocks.SlackRTM.EXPECT().SendMessage(message3)
+	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777")
+	mocks.WhoIsWhoClient.EXPECT().UpsertUser("pickabot", gomock.Any())
 
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> add <@U7777> to eng-example-team"))
 	assert.Equal(t, []Override{
@@ -328,6 +343,8 @@ func TestAddFlair(t *testing.T) {
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 	mocks.SlackRTM.EXPECT().SendMessage(message)
+	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U0")
+	mocks.WhoIsWhoClient.EXPECT().UpsertUser("pickabot", gomock.Any())
 
 	assert.Equal(t, 0, len(mockbot.UserFlair))
 	assert.Equal(t, "", mockbot.UserFlair["U0"])

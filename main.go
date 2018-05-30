@@ -120,7 +120,7 @@ func main() {
 	SlackLoop(pickabot)
 }
 
-func buildTeams(client whoswho.Client) (map[string][]whoswho.User, []Override, map[string]string, error) {
+func buildTeams(client whoIsWhoClientIface) (map[string][]whoswho.User, []Override, map[string]string, error) {
 	users, err := client.GetUserList()
 	if err != nil {
 		return nil, []Override{}, map[string]string{}, err

@@ -14,7 +14,7 @@ test: $(PKGS)
 $(PKGS): golang-test-all-strict-deps
 	$(call golang-test-all-strict,$@)
 
-build:
+build: generate
 	$(call golang-build,$(PKG),$(EXECUTABLE))
 
 run: build
@@ -22,10 +22,7 @@ run: build
 
 install_deps: golang-dep-vendor-deps
 	$(call golang-dep-vendor)
+	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
 
-# TODO: Install predictable mockgen version into bin/
-# mockgen:
-# 	...
-
-mocks:
-	mkdir -p mock_slackapi && mockgen github.com/Clever/pickabot/slackapi SlackAPIService,SlackRTMService > mock_slackapi/MockSlackService.go
+generate:
+	go generate ./
