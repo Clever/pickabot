@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -13,6 +14,9 @@ import (
 
 const testChannel = "test-channel"
 const testUserID = "U0"
+const testGithubOrg = "Clever"
+
+var testGithubUser = whoswho.User{SlackID: "G1", Github: "github"}
 
 func makeSlackMessage(text string) *slack.MessageEvent {
 	return &slack.MessageEvent{
@@ -41,6 +45,7 @@ type BotMocks struct {
 	SlackAPI       *MockSlackAPIService
 	SlackRTM       *MockSlackRTMService
 	WhoIsWhoClient *MockwhoIsWhoClientIface
+	GithubClient   *MockAppClientIface
 }
 
 func getMockBot(t *testing.T) (*Bot, *BotMocks, *gomock.Controller) {
@@ -48,6 +53,7 @@ func getMockBot(t *testing.T) (*Bot, *BotMocks, *gomock.Controller) {
 	mockSlackAPIService := NewMockSlackAPIService(mockCtrl)
 	mockSlackRTMService := NewMockSlackRTMService(mockCtrl)
 	mockWhoIsWhoClient := NewMockwhoIsWhoClientIface(mockCtrl)
+	mockGithubClient := NewMockAppClientIface(mockCtrl)
 
 	mockbot := &Bot{
 		SlackAPIService: mockSlackAPIService,
@@ -65,17 +71,21 @@ func getMockBot(t *testing.T) (*Bot, *BotMocks, *gomock.Controller) {
 			"same-user-team": []whoswho.User{
 				whoswho.User{SlackID: testUserID},
 			},
+			"github-user-team": []whoswho.User{testGithubUser},
 		},
 		Logger:         logger.New(testChannel),
 		Name:           testUserID,
 		RandomSource:   rand.NewSource(0),
 		WhoIsWhoClient: mockWhoIsWhoClient,
+		GithubClient:   mockGithubClient,
+		GithubOrgName:  testGithubOrg,
 	}
 
 	return mockbot, &BotMocks{
-		mockSlackAPIService,
-		mockSlackRTMService,
-		mockWhoIsWhoClient,
+		SlackAPI:       mockSlackAPIService,
+		SlackRTM:       mockSlackRTMService,
+		WhoIsWhoClient: mockWhoIsWhoClient,
+		GithubClient:   mockGithubClient,
 	}, mockCtrl
 }
 
@@ -122,9 +132,6 @@ func TestPickTeamMember(t *testing.T) {
 		"<@U1234> pick example-team",
 		"<@U1234> pick a example-team",
 		"<@U1234> pick an example-team",
-		"<@U1234> assign an example-team",
-		"<@U1234> pick and assign an example-team",
-		"<@U1234> pick and assign a example-team",
 		// With "eng-"
 		"<@U1234> pick eng-example-team",
 		"<@U1234> pick a eng-example-team",
@@ -135,7 +142,6 @@ func TestPickTeamMember(t *testing.T) {
 		"<@U1234> pick an eng example-team",
 		// With "#"
 		"<@U1234> pick an #eng-example-team",
-		"<@U1234> assign an #eng-example-team",
 		// With text after the team name
 		"<@U1234> pick a eng-example-team for https://github.com/Clever/fake-repo/pull/1",
 	} {
@@ -150,6 +156,86 @@ func TestPickTeamMember(t *testing.T) {
 		mocks.SlackRTM.EXPECT().SendMessage(message)
 
 		mockbot.DecodeMessage(makeSlackMessage(input))
+	}
+}
+
+func TestPickAssignTeamMember(t *testing.T) {
+	for _, input := range []string{
+		// Without "eng"
+		"<@U1234> assign a example-team",
+		"<@U1234> assign an example-team",
+		"<@U1234> pick and assign an example-team",
+		"<@U1234> pick and assign a example-team",
+		// With "eng-"
+		"<@U1234> pick and assign eng-example-team",
+		"<@U1234> pick and assign a eng-example-team",
+		"<@U1234> pick and assign an eng-example-team",
+		"<@U1234> assign eng-example-team",
+		"<@U1234> assign a eng-example-team",
+		"<@U1234> assign an eng-example-team",
+		// With "eng "
+		"<@U1234> pick and assign eng example-team",
+		"<@U1234> pick and assign a eng example-team",
+		"<@U1234> pick and assign an eng example-team",
+		"<@U1234> assign eng example-team",
+		"<@U1234> assign a eng example-team",
+		"<@U1234> assign an eng example-team",
+		// With "#"
+		"<@U1234> pick and assign an #eng-example-team",
+		"<@U1234> assign an #eng-example-team",
+	} {
+		t.Log("Input = ", input)
+		mockbot, mocks, mockCtrl := getMockBot(t)
+		defer mockCtrl.Finish()
+
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+		msg := "Set <@U3> as pull-request reviewer"
+		message := makeSlackOutgoingMessage(msg)
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+		mocks.SlackRTM.EXPECT().SendMessage(message)
+
+		mockbot.DecodeMessage(makeSlackMessage(input))
+	}
+}
+
+func TestAssignTeamMember(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		message      string
+		expectedUser string
+		expectations func(*BotMocks)
+	}{
+		{
+			name:         "no calls if the user doesn't have a github account",
+			message:      "<@U1234> assign a example-team for https://github.com/Clever/fake-repo/pull/1",
+			expectedUser: "U3",
+			expectations: func(mocks *BotMocks) {},
+		},
+		{
+			name:         "calls assign and review for a team member",
+			message:      "<@U1234> assign a github-user-team for https://github.com/Clever/fake-repo/pull/1 https://github.com/Clever/fake-repo2/pull/1",
+			expectedUser: testGithubUser.SlackID,
+			expectations: func(mocks *BotMocks) {
+				// check calls
+				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
+				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
+				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
+				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
+			},
+		},
+	} {
+		t.Logf("Case: %s. Input: %s", test.name, test.message)
+		mockbot, mocks, mockCtrl := getMockBot(t)
+		defer mockCtrl.Finish()
+
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+		test.expectations(mocks)
+		msg := fmt.Sprintf("Set <@%s> as pull-request reviewer", test.expectedUser)
+		message := makeSlackOutgoingMessage(msg)
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+		mocks.SlackRTM.EXPECT().SendMessage(message)
+
+		mockbot.DecodeMessage(makeSlackMessage(test.message))
 	}
 }
 

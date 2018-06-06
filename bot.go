@@ -20,6 +20,7 @@ import (
 
 // generate mocks of dependencies for use during testing
 //go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/slackapi/SlackService.go SlackAPIService,SlackRTMService > slack_service_mock_test.go"
+//go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/github/client.go AppClientIface > github_mock_test.go"
 
 // Bot is the encapsulation of the logic to respond to Slack messages, by calling out to external services
 type Bot struct {
@@ -336,10 +337,11 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string, setAssig
 	}
 
 	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
-	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
 	if setAssignee {
 		bot.setAssignee(ev, user)
+		text = fmt.Sprintf("Set <@%s>%s as pull-request reviewer", user.SlackID, flair)
 	}
+	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
 	return
 }
 
@@ -349,6 +351,7 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
 		return
 	}
 	var reposWithAssigneeSet []string
+	var reposWithReviewerSet []string
 	prs := parseMessageForPRs(bot.GithubOrgName, ev.Text)
 	for _, pr := range prs {
 		var err error
@@ -357,16 +360,27 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
 			bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("would have assigned %s to %s", user.Github, pr.Repo), ev.Channel))
 		} else {
 			_, _, err = bot.GithubClient.AddAssignees(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
-		}
-		if err != nil {
-			bot.Logger.ErrorD("set-assignee-error", logger.M{"error": err.Error(), "event-text": ev.Text, "user": user.Github})
-		} else {
-			reposWithAssigneeSet = append(reposWithAssigneeSet, pr.Repo)
+			if err != nil {
+				bot.Logger.ErrorD("set-assignee-error", logger.M{"error": err.Error(), "event-text": ev.Text, "repo": pr.Repo, "user": user.Github})
+			} else {
+				reposWithAssigneeSet = append(reposWithAssigneeSet, pr.Repo)
+			}
+			_, _, err = bot.GithubClient.AddReviewers(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
+			if err != nil {
+				bot.Logger.ErrorD("set-reviewer-error", logger.M{"error": err.Error(), "event-text": ev.Text, "repo": pr.Repo, "user": user.Github})
+			} else {
+				reposWithReviewerSet = append(reposWithReviewerSet, pr.Repo)
+			}
 		}
 	}
 
-	if len(reposWithAssigneeSet) > 0 {
-		bot.Logger.InfoD("set-assignee-success", logger.M{"repos": reposWithAssigneeSet, "event-text": ev.Text, "user": user.Github})
+	if len(reposWithAssigneeSet) > 0 || len(reposWithReviewerSet) > 0 {
+		bot.Logger.InfoD("set-assignee-success", logger.M{
+			"assigned-repos":  reposWithAssigneeSet,
+			"reviewing-repos": reposWithReviewerSet,
+			"event-text":      ev.Text,
+			"user":            user.Github,
+		})
 	}
 
 	return
