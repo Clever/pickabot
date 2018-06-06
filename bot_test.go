@@ -180,11 +180,19 @@ func TestAssignTeamMember(t *testing.T) {
 		},
 		{
 			name:         "calls assign and review for a team member",
-			message:      "<@U1234> assign a github-user-team for https://github.com/Clever/fake-repo/pull/1",
+			message:      "<@U1234> assign a github-user-team for https://github.com/Clever/fake-repo/pull/1 https://github.com/Clever/fake-repo2/pull/1",
 			expectedUser: testGithubUser.SlackID,
 			expectations: func(mocks *BotMocks) {
+				// check calls
 				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
 				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
+				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
+				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
+				// validate message
+				msg := fmt.Sprintf("I successfully set reviewers for: %s", "fake-repo, fake-repo2")
+				message := makeSlackOutgoingMessage(msg)
+				mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+				mocks.SlackRTM.EXPECT().SendMessage(message)
 			},
 		},
 	} {

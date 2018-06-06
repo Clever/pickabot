@@ -380,6 +380,8 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
 			"event-text":      ev.Text,
 			"user":            user.Github,
 		})
+		text := fmt.Sprintf("I successfully set reviewers for: %s", strings.Join(reposWithReviewerSet, ", "))
+		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
 	}
 
 	return
