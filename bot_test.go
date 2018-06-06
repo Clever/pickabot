@@ -132,9 +132,6 @@ func TestPickTeamMember(t *testing.T) {
 		"<@U1234> pick example-team",
 		"<@U1234> pick a example-team",
 		"<@U1234> pick an example-team",
-		"<@U1234> assign an example-team",
-		"<@U1234> pick and assign an example-team",
-		"<@U1234> pick and assign a example-team",
 		// With "eng-"
 		"<@U1234> pick eng-example-team",
 		"<@U1234> pick a eng-example-team",
@@ -145,11 +142,8 @@ func TestPickTeamMember(t *testing.T) {
 		"<@U1234> pick an eng example-team",
 		// With "#"
 		"<@U1234> pick an #eng-example-team",
-		"<@U1234> assign an #eng-example-team",
 		// With text after the team name
 		"<@U1234> pick a eng-example-team for https://github.com/Clever/fake-repo/pull/1",
-		"<@U1234> pick and assign eng-example-team for https://github.com/Clever/fake-repo/pull/1",
-		"<@U1234> assign a eng-example-team for https://github.com/Clever/fake-repo/pull/1",
 	} {
 		t.Log("Input = ", input)
 		mockbot, mocks, mockCtrl := getMockBot(t)
@@ -157,6 +151,45 @@ func TestPickTeamMember(t *testing.T) {
 
 		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 		msg := "I choose you: <@U3>"
+		message := makeSlackOutgoingMessage(msg)
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+		mocks.SlackRTM.EXPECT().SendMessage(message)
+
+		mockbot.DecodeMessage(makeSlackMessage(input))
+	}
+}
+
+func TestPickAssignTeamMember(t *testing.T) {
+	for _, input := range []string{
+		// Without "eng"
+		"<@U1234> assign a example-team",
+		"<@U1234> assign an example-team",
+		"<@U1234> pick and assign an example-team",
+		"<@U1234> pick and assign a example-team",
+		// With "eng-"
+		"<@U1234> pick and assign eng-example-team",
+		"<@U1234> pick and assign a eng-example-team",
+		"<@U1234> pick and assign an eng-example-team",
+		"<@U1234> assign eng-example-team",
+		"<@U1234> assign a eng-example-team",
+		"<@U1234> assign an eng-example-team",
+		// With "eng "
+		"<@U1234> pick and assign eng example-team",
+		"<@U1234> pick and assign a eng example-team",
+		"<@U1234> pick and assign an eng example-team",
+		"<@U1234> assign eng example-team",
+		"<@U1234> assign a eng example-team",
+		"<@U1234> assign an eng example-team",
+		// With "#"
+		"<@U1234> pick and assign an #eng-example-team",
+		"<@U1234> assign an #eng-example-team",
+	} {
+		t.Log("Input = ", input)
+		mockbot, mocks, mockCtrl := getMockBot(t)
+		defer mockCtrl.Finish()
+
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+		msg := "Set <@U3> as pull-request reviewer"
 		message := makeSlackOutgoingMessage(msg)
 		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 		mocks.SlackRTM.EXPECT().SendMessage(message)
