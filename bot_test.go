@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Clever/kayvee-go/logger"
+	"github.com/Clever/pickabot/mocks"
 	whoswho "github.com/Clever/who-is-who/go-client"
 	"github.com/golang/mock/gomock"
 	"github.com/nlopes/slack"
@@ -42,18 +43,18 @@ func makeSlackOutgoingMessage(text string) *slack.OutgoingMessage {
 }
 
 type BotMocks struct {
-	SlackAPI       *MockSlackAPIService
-	SlackRTM       *MockSlackRTMService
-	WhoIsWhoClient *MockwhoIsWhoClientIface
-	GithubClient   *MockAppClientIface
+	SlackAPI       *mocks.MockSlackAPIService
+	SlackRTM       *mocks.MockSlackRTMService
+	WhoIsWhoClient *mocks.MockwhoIsWhoClientIface
+	GithubClient   *mocks.MockAppClientIface
 }
 
 func getMockBot(t *testing.T) (*Bot, *BotMocks, *gomock.Controller) {
 	mockCtrl := gomock.NewController(t)
-	mockSlackAPIService := NewMockSlackAPIService(mockCtrl)
-	mockSlackRTMService := NewMockSlackRTMService(mockCtrl)
-	mockWhoIsWhoClient := NewMockwhoIsWhoClientIface(mockCtrl)
-	mockGithubClient := NewMockAppClientIface(mockCtrl)
+	mockSlackAPIService := mocks.NewMockSlackAPIService(mockCtrl)
+	mockSlackRTMService := mocks.NewMockSlackRTMService(mockCtrl)
+	mockWhoIsWhoClient := mocks.NewMockwhoIsWhoClientIface(mockCtrl)
+	mockGithubClient := mocks.NewMockAppClientIface(mockCtrl)
 
 	mockbot := &Bot{
 		SlackAPIService: mockSlackAPIService,

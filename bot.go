@@ -18,10 +18,6 @@ import (
 	lev "github.com/texttheater/golang-levenshtein/levenshtein"
 )
 
-// generate mocks of dependencies for use during testing
-//go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/slackapi/SlackService.go SlackAPIService,SlackRTMService > slack_service_mock_test.go"
-//go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/github/client.go AppClientIface > github_mock_test.go"
-
 // Bot is the encapsulation of the logic to respond to Slack messages, by calling out to external services
 type Bot struct {
 	Name    string

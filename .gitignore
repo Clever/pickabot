@@ -3,4 +3,4 @@ bin
 
 vendor
 
-pickabot.private-key.pem
+mocks/mock*

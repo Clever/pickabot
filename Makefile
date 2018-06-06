@@ -10,11 +10,11 @@ $(eval $(call golang-version-check,1.10))
 
 all: test build
 
-test: $(PKGS)
+test: generate $(PKGS)
 $(PKGS): golang-test-all-strict-deps
 	$(call golang-test-all-strict,$@)
 
-build: generate
+build: 
 	$(call golang-build,$(PKG),$(EXECUTABLE))
 
 run: build
@@ -25,4 +25,5 @@ install_deps: golang-dep-vendor-deps
 	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
 
 generate:
-	go generate ./
+	go generate $(PKG)/mocks
+
