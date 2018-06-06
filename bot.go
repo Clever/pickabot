@@ -337,10 +337,11 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string, setAssig
 	}
 
 	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
-	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
 	if setAssignee {
 		bot.setAssignee(ev, user)
+		text = fmt.Sprintf("Set <@%s>%s as pull-request reviewer", user.SlackID, flair)
 	}
+	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
 	return
 }
 
@@ -380,8 +381,6 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
 			"event-text":      ev.Text,
 			"user":            user.Github,
 		})
-		text := fmt.Sprintf("I successfully set reviewers for: %s", strings.Join(reposWithReviewerSet, ", "))
-		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
 	}
 
 	return

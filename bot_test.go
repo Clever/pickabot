@@ -188,11 +188,6 @@ func TestAssignTeamMember(t *testing.T) {
 				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
 				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
 				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
-				// validate message
-				msg := fmt.Sprintf("I successfully set reviewers for: %s", "fake-repo, fake-repo2")
-				message := makeSlackOutgoingMessage(msg)
-				mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
-				mocks.SlackRTM.EXPECT().SendMessage(message)
 			},
 		},
 	} {
@@ -201,12 +196,11 @@ func TestAssignTeamMember(t *testing.T) {
 		defer mockCtrl.Finish()
 
 		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-		msg := fmt.Sprintf("I choose you: <@%s>", test.expectedUser)
+		test.expectations(mocks)
+		msg := fmt.Sprintf("Set <@%s> as pull-request reviewer", test.expectedUser)
 		message := makeSlackOutgoingMessage(msg)
 		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 		mocks.SlackRTM.EXPECT().SendMessage(message)
-
-		test.expectations(mocks)
 
 		mockbot.DecodeMessage(makeSlackMessage(test.message))
 	}
