@@ -42,9 +42,11 @@ type Bot struct {
 }
 
 const teamMatcher = `#?(eng)?[- ]?([a-zA-Z-]+)`
+const individualMatcher = `@([a-zA-Z0-9-]+)`
 
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
 var pickTeamRegex = regexp.MustCompile(`^\s*(pick\ and\ assign|pick|assign)\s*[a]?[n]?\s*` + teamMatcher)
+var pickIndividualRegex = regexp.MustCompile(`^\s*(pick\ and\ assign|pick|assign)\s*[a]?[n]?\s*` + individualMatcher)
 var listTeamRegex = regexp.MustCompile(`^\s*who is\s*[a]?[n]?\s*` + teamMatcher)
 var overrideTeamRegex = regexp.MustCompile(`^\s*<@(.+?)> is\s*(not)?\s*[a]?[n]? ` + teamMatcher)
 var overrideTeamRegex2 = regexp.MustCompile(`^\s*(add|remove)\s+<@(.+?)>\s+(to|from)\s+` + teamMatcher)
@@ -55,6 +57,7 @@ var helpRegex = regexp.MustCompile(`^\s*help`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
+const couldNotFindIndividual = "Sorry, I couldn't find a user with that name"
 const pickUserProblem = "Sorry, I ran into an issue picking a user. Check my logs for more details :sleuth_or_spy:"
 const helpMessage = "_Pika-pi!_\n\nI can do the following:\n\n" +
 	"`@pickabot pick a <team>` - picks a user from that team\n" +
@@ -150,12 +153,24 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 				return
 			}
 
+			// Determine if doing PR assignment
+			setAssigneeMatch := setAssigneeRegex.FindStringSubmatch(message)
+			setAssignee := len(setAssigneeMatch) > 0
+
+			// Check if picking an individual
+			// TODO: must come before team because team regex also matches individual regex
+			individualMatch := pickIndividualRegex.FindStringSubmatch(message)
+			if len(individualMatch) > 2 {
+				individualName := individualMatch[2]
+				bot.pickIndividual(ev, individualName, setAssignee)
+				return
+			}
+
 			// Pick a team member
 			teamMatch := pickTeamRegex.FindStringSubmatch(message)
-			setAssigneeMatch := setAssigneeRegex.FindStringSubmatch(message)
 			if len(teamMatch) > 3 {
 				teamName := teamMatch[3]
-				bot.pickTeamMember(ev, teamName, len(setAssigneeMatch) > 0)
+				bot.pickTeamMember(ev, teamName, setAssignee)
 				return
 			}
 
@@ -327,6 +342,38 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string, setAssig
 	if err != nil {
 		bot.Logger.ErrorD("pick-user-error", logger.M{"error": err.Error(), "event-text": ev.Text})
 		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(pickUserProblem, ev.Channel))
+		return
+	}
+
+	// Add flair
+	flair := bot.UserFlair[user.SlackID]
+	if flair != "" {
+		flair = " " + flair
+	}
+
+	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
+	if setAssignee {
+		bot.setAssignee(ev, user)
+		text = fmt.Sprintf("Set <@%s>%s as pull-request reviewer", user.SlackID, flair)
+	}
+	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
+	return
+}
+
+func (bot *Bot) pickIndividual(ev *slack.MessageEvent, individualSlackID string, setAssignee bool) {
+	bot.Logger.InfoD("pick-individual", logger.M{"slack ID": individualSlackID})
+	user, err := bot.WhoIsWhoClient.UserBySlackID(individualSlackID)
+	if err != nil {
+		bot.Logger.ErrorD("find-matching-individual-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(couldNotFindIndividual, ev.Channel))
+		return
+	}
+	if len(user.SlackID) == 0 {
+		bot.Logger.ErrorD("find-matching-individual-error", logger.M{
+			"error":      fmt.Sprintf("no user found for %s", individualSlackID),
+			"event-text": ev.Text,
+		})
+		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(couldNotFindIndividual, ev.Channel))
 		return
 	}
 

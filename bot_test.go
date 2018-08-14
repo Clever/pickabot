@@ -252,6 +252,110 @@ func TestPickTeamMemberInvalidTeam(t *testing.T) {
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> pick a eng-invalid-team"))
 }
 
+func TestPickIndividual(t *testing.T) {
+	for _, input := range []string{
+		"<@U1234> pick @U5",
+		"<@U1234> pick a @U5",
+		"<@U1234> pick an @U5",
+		"<@U1234> pick @U5 for https://github.com/Clever/fake-repo/pull/1",
+	} {
+		t.Log("Input = ", input)
+		mockbot, mocks, mockCtrl := getMockBot(t)
+		defer mockCtrl.Finish()
+
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+		mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5").Return(whoswho.User{SlackID: "U5"}, nil)
+		msg := "I choose you: <@U5>"
+		message := makeSlackOutgoingMessage(msg)
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+		mocks.SlackRTM.EXPECT().SendMessage(message)
+
+		mockbot.DecodeMessage(makeSlackMessage(input))
+	}
+}
+
+func TestPickAssignIndividual(t *testing.T) {
+	for _, input := range []string{
+		"<@U1234> assign @U5",
+		"<@U1234> assign a @U5",
+		"<@U1234> assign an @U5",
+		"<@U1234> pick and assign @U5",
+		"<@U1234> pick and assign a @U5",
+		"<@U1234> pick and assign an @U5",
+	} {
+		t.Log("Input = ", input)
+		mockbot, mocks, mockCtrl := getMockBot(t)
+		defer mockCtrl.Finish()
+
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+		mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5").Return(whoswho.User{SlackID: "U5"}, nil)
+		msg := "Set <@U5> as pull-request reviewer"
+		message := makeSlackOutgoingMessage(msg)
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+		mocks.SlackRTM.EXPECT().SendMessage(message)
+
+		mockbot.DecodeMessage(makeSlackMessage(input))
+	}
+}
+
+func TestAssignIndividual(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		message      string
+		expectedUser string
+		expectations func(*BotMocks)
+	}{
+		{
+			name:         "no github calls if the user doesn't have a github account",
+			message:      "<@U1234> assign @U5 for https://github.com/Clever/fake-repo/pull/1",
+			expectedUser: "U5",
+			expectations: func(mocks *BotMocks) {
+				mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5").Return(whoswho.User{SlackID: "U5"}, nil)
+			},
+		},
+		{
+			name:         "calls assign and review for an individual",
+			message:      "<@U1234> assign @G1 for https://github.com/Clever/fake-repo/pull/1 https://github.com/Clever/fake-repo2/pull/1",
+			expectedUser: testGithubUser.SlackID,
+			expectations: func(mocks *BotMocks) {
+				mocks.WhoIsWhoClient.EXPECT().UserBySlackID("G1").Return(testGithubUser, nil)
+				// check github calls
+				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
+				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
+				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
+				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
+			},
+		},
+	} {
+		t.Logf("Case: %s. Input: %s", test.name, test.message)
+		mockbot, mocks, mockCtrl := getMockBot(t)
+		defer mockCtrl.Finish()
+
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+		test.expectations(mocks)
+		msg := fmt.Sprintf("Set <@%s> as pull-request reviewer", test.expectedUser)
+		message := makeSlackOutgoingMessage(msg)
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+		mocks.SlackRTM.EXPECT().SendMessage(message)
+
+		mockbot.DecodeMessage(makeSlackMessage(test.message))
+	}
+}
+
+func TestPickIndividualInvalidName(t *testing.T) {
+	mockbot, mocks, mockCtrl := getMockBot(t)
+	defer mockCtrl.Finish()
+
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("not-a-user")
+	msg := couldNotFindIndividual
+	message := makeSlackOutgoingMessage(msg)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+	mocks.SlackRTM.EXPECT().SendMessage(message)
+
+	mockbot.DecodeMessage(makeSlackMessage("<@U1234> pick @not-a-user"))
+}
+
 func TestPickUserNoUserError(t *testing.T) {
 	mockbot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
