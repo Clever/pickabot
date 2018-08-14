@@ -352,8 +352,12 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string, setAssig
 
 	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
 	if setAssignee {
-		bot.setAssignee(ev, user)
-		text = fmt.Sprintf("Set <@%s>%s as pull-request reviewer", user.SlackID, flair)
+		err = bot.setAssignee(ev, user)
+		if err != nil {
+			text = fmt.Sprintf("Error setting <@%s>%s as pull-request reviewer: %s", user.SlackID, flair, err.Error())
+		} else {
+			text = fmt.Sprintf("Set <@%s>%s as pull-request reviewer", user.SlackID, flair)
+		}
 	}
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
 	return
@@ -376,17 +380,21 @@ func (bot *Bot) pickIndividual(ev *slack.MessageEvent, individualSlackID string,
 
 	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
 	if setAssignee {
-		bot.setAssignee(ev, user)
-		text = fmt.Sprintf("Set <@%s>%s as pull-request reviewer", user.SlackID, flair)
+		err = bot.setAssignee(ev, user)
+		if err != nil {
+			text = fmt.Sprintf("Error setting <@%s>%s as pull-request reviewer: %s", user.SlackID, flair, err.Error())
+		} else {
+			text = fmt.Sprintf("Set <@%s>%s as pull-request reviewer", user.SlackID, flair)
+		}
 	}
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
 	return
 }
 
-func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
+func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) error {
 	if user.Github == "" {
 		bot.Logger.ErrorD("set-assignee-error", logger.M{"error": fmt.Errorf("no valid Github account for %s", user.Email)})
-		return
+		return fmt.Errorf("No github account for slack user <@%s>", user.SlackID)
 	}
 	var reposWithAssigneeSet []string
 	var reposWithReviewerSet []string
@@ -399,13 +407,13 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
 		} else {
 			_, _, err = bot.GithubClient.AddAssignees(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
 			if err != nil {
-				bot.Logger.ErrorD("set-assignee-error", logger.M{"error": err.Error(), "event-text": ev.Text, "repo": pr.Repo, "user": user.Github})
+				bot.Logger.ErrorD("set-assignee-failure-warning", logger.M{"warning": err.Error(), "event-text": ev.Text, "repo": pr.Repo, "user": user.Github})
 			} else {
 				reposWithAssigneeSet = append(reposWithAssigneeSet, pr.Repo)
 			}
 			_, _, err = bot.GithubClient.AddReviewers(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
 			if err != nil {
-				bot.Logger.ErrorD("set-reviewer-error", logger.M{"error": err.Error(), "event-text": ev.Text, "repo": pr.Repo, "user": user.Github})
+				bot.Logger.ErrorD("set-reviewer-failure-warning", logger.M{"warning": err.Error(), "event-text": ev.Text, "repo": pr.Repo, "user": user.Github})
 			} else {
 				reposWithReviewerSet = append(reposWithReviewerSet, pr.Repo)
 			}
@@ -421,7 +429,7 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
 		})
 	}
 
-	return
+	return nil
 }
 
 func (bot *Bot) buildTeam(teamName string) []whoswho.User {
