@@ -42,7 +42,7 @@ type Bot struct {
 }
 
 const teamMatcher = `#?(eng)?[- ]?([a-zA-Z-]+)`
-const individualMatcher = `@([a-zA-Z0-9-]+)`
+const individualMatcher = `<@([a-zA-Z0-9-]+)>`
 
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
 var pickTeamRegex = regexp.MustCompile(`^\s*(pick\ and\ assign|pick|assign)\s*[a]?[n]?\s*` + teamMatcher)
@@ -57,7 +57,6 @@ var helpRegex = regexp.MustCompile(`^\s*help`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
-const couldNotFindIndividual = "Sorry, I couldn't find a user with that name"
 const pickUserProblem = "Sorry, I ran into an issue picking a user. Check my logs for more details :sleuth_or_spy:"
 const helpMessage = "_Pika-pi!_\n\nI can do the following:\n\n" +
 	"`@pickabot pick a <team>` - picks a user from that team\n" +
@@ -364,16 +363,8 @@ func (bot *Bot) pickIndividual(ev *slack.MessageEvent, individualSlackID string,
 	bot.Logger.InfoD("pick-individual", logger.M{"slack ID": individualSlackID})
 	user, err := bot.WhoIsWhoClient.UserBySlackID(individualSlackID)
 	if err != nil {
-		bot.Logger.ErrorD("find-matching-individual-error", logger.M{"error": err.Error(), "event-text": ev.Text})
-		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(couldNotFindIndividual, ev.Channel))
-		return
-	}
-	if len(user.SlackID) == 0 {
-		bot.Logger.ErrorD("find-matching-individual-error", logger.M{
-			"error":      fmt.Sprintf("no user found for %s", individualSlackID),
-			"event-text": ev.Text,
-		})
-		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(couldNotFindIndividual, ev.Channel))
+		bot.Logger.ErrorD("pick-user-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(pickUserProblem, ev.Channel))
 		return
 	}
 

@@ -254,10 +254,10 @@ func TestPickTeamMemberInvalidTeam(t *testing.T) {
 
 func TestPickIndividual(t *testing.T) {
 	for _, input := range []string{
-		"<@U1234> pick @U5",
-		"<@U1234> pick a @U5",
-		"<@U1234> pick an @U5",
-		"<@U1234> pick @U5 for https://github.com/Clever/fake-repo/pull/1",
+		"<@U1234> pick <@U5>",
+		"<@U1234> pick a <@U5>",
+		"<@U1234> pick an <@U5>",
+		"<@U1234> pick <@U5> for https://github.com/Clever/fake-repo/pull/1",
 	} {
 		t.Log("Input = ", input)
 		mockbot, mocks, mockCtrl := getMockBot(t)
@@ -276,12 +276,12 @@ func TestPickIndividual(t *testing.T) {
 
 func TestPickAssignIndividual(t *testing.T) {
 	for _, input := range []string{
-		"<@U1234> assign @U5",
-		"<@U1234> assign a @U5",
-		"<@U1234> assign an @U5",
-		"<@U1234> pick and assign @U5",
-		"<@U1234> pick and assign a @U5",
-		"<@U1234> pick and assign an @U5",
+		"<@U1234> assign <@U5>",
+		"<@U1234> assign a <@U5>",
+		"<@U1234> assign an <@U5>",
+		"<@U1234> pick and assign <@U5>",
+		"<@U1234> pick and assign a <@U5>",
+		"<@U1234> pick and assign an <@U5>",
 	} {
 		t.Log("Input = ", input)
 		mockbot, mocks, mockCtrl := getMockBot(t)
@@ -307,7 +307,7 @@ func TestAssignIndividual(t *testing.T) {
 	}{
 		{
 			name:         "no github calls if the user doesn't have a github account",
-			message:      "<@U1234> assign @U5 for https://github.com/Clever/fake-repo/pull/1",
+			message:      "<@U1234> assign <@U5> for https://github.com/Clever/fake-repo/pull/1",
 			expectedUser: "U5",
 			expectations: func(mocks *BotMocks) {
 				mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5").Return(whoswho.User{SlackID: "U5"}, nil)
@@ -315,7 +315,7 @@ func TestAssignIndividual(t *testing.T) {
 		},
 		{
 			name:         "calls assign and review for an individual",
-			message:      "<@U1234> assign @G1 for https://github.com/Clever/fake-repo/pull/1 https://github.com/Clever/fake-repo2/pull/1",
+			message:      "<@U1234> assign <@G1> for https://github.com/Clever/fake-repo/pull/1 https://github.com/Clever/fake-repo2/pull/1",
 			expectedUser: testGithubUser.SlackID,
 			expectations: func(mocks *BotMocks) {
 				mocks.WhoIsWhoClient.EXPECT().UserBySlackID("G1").Return(testGithubUser, nil)
@@ -347,8 +347,7 @@ func TestPickIndividualInvalidName(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("not-a-user")
-	msg := couldNotFindIndividual
+	msg := didNotUnderstand
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 	mocks.SlackRTM.EXPECT().SendMessage(message)
