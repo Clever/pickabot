@@ -42,9 +42,11 @@ type Bot struct {
 }
 
 const teamMatcher = `#?(eng)?[- ]?([a-zA-Z-]+)`
+const individualMatcher = `<@([a-zA-Z0-9-]+)>`
 
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
 var pickTeamRegex = regexp.MustCompile(`^\s*(pick\ and\ assign|pick|assign)\s*[a]?[n]?\s*` + teamMatcher)
+var pickIndividualRegex = regexp.MustCompile(`^\s*(pick\ and\ assign|pick|assign)\s*[a]?[n]?\s*` + individualMatcher)
 var listTeamRegex = regexp.MustCompile(`^\s*who is\s*[a]?[n]?\s*` + teamMatcher)
 var overrideTeamRegex = regexp.MustCompile(`^\s*<@(.+?)> is\s*(not)?\s*[a]?[n]? ` + teamMatcher)
 var overrideTeamRegex2 = regexp.MustCompile(`^\s*(add|remove)\s+<@(.+?)>\s+(to|from)\s+` + teamMatcher)
@@ -150,12 +152,24 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 				return
 			}
 
+			// Determine if doing PR assignment
+			setAssigneeMatch := setAssigneeRegex.FindStringSubmatch(message)
+			setAssignee := len(setAssigneeMatch) > 0
+
+			// Check if picking an individual
+			// TODO: must come before team because team regex also matches individual regex
+			individualMatch := pickIndividualRegex.FindStringSubmatch(message)
+			if len(individualMatch) > 2 {
+				individualName := individualMatch[2]
+				bot.pickIndividual(ev, individualName, setAssignee)
+				return
+			}
+
 			// Pick a team member
 			teamMatch := pickTeamRegex.FindStringSubmatch(message)
-			setAssigneeMatch := setAssigneeRegex.FindStringSubmatch(message)
 			if len(teamMatch) > 3 {
 				teamName := teamMatch[3]
-				bot.pickTeamMember(ev, teamName, len(setAssigneeMatch) > 0)
+				bot.pickTeamMember(ev, teamName, setAssignee)
 				return
 			}
 
@@ -338,17 +352,49 @@ func (bot *Bot) pickTeamMember(ev *slack.MessageEvent, teamName string, setAssig
 
 	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
 	if setAssignee {
-		bot.setAssignee(ev, user)
-		text = fmt.Sprintf("Set <@%s>%s as pull-request reviewer", user.SlackID, flair)
+		err = bot.setAssignee(ev, user)
+		if err != nil {
+			text = fmt.Sprintf("Error setting <@%s>%s as pull-request reviewer: %s", user.SlackID, flair, err.Error())
+		} else {
+			text = fmt.Sprintf("Set <@%s>%s as pull-request reviewer", user.SlackID, flair)
+		}
 	}
 	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
 	return
 }
 
-func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
+func (bot *Bot) pickIndividual(ev *slack.MessageEvent, individualSlackID string, setAssignee bool) {
+	bot.Logger.InfoD("pick-individual", logger.M{"slack ID": individualSlackID})
+	user, err := bot.WhoIsWhoClient.UserBySlackID(individualSlackID)
+	if err != nil {
+		bot.Logger.ErrorD("pick-user-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(pickUserProblem, ev.Channel))
+		return
+	}
+
+	// Add flair
+	flair := bot.UserFlair[user.SlackID]
+	if flair != "" {
+		flair = " " + flair
+	}
+
+	text := fmt.Sprintf("I choose you: <@%s>%s", user.SlackID, flair)
+	if setAssignee {
+		err = bot.setAssignee(ev, user)
+		if err != nil {
+			text = fmt.Sprintf("Error setting <@%s>%s as pull-request reviewer: %s", user.SlackID, flair, err.Error())
+		} else {
+			text = fmt.Sprintf("Set <@%s>%s as pull-request reviewer", user.SlackID, flair)
+		}
+	}
+	bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(text, ev.Channel))
+	return
+}
+
+func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) error {
 	if user.Github == "" {
 		bot.Logger.ErrorD("set-assignee-error", logger.M{"error": fmt.Errorf("no valid Github account for %s", user.Email)})
-		return
+		return fmt.Errorf("No github account for slack user <@%s>", user.SlackID)
 	}
 	var reposWithAssigneeSet []string
 	var reposWithReviewerSet []string
@@ -361,13 +407,13 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
 		} else {
 			_, _, err = bot.GithubClient.AddAssignees(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
 			if err != nil {
-				bot.Logger.ErrorD("set-assignee-error", logger.M{"error": err.Error(), "event-text": ev.Text, "repo": pr.Repo, "user": user.Github})
+				bot.Logger.ErrorD("set-assignee-failure-warning", logger.M{"warning": err.Error(), "event-text": ev.Text, "repo": pr.Repo, "user": user.Github})
 			} else {
 				reposWithAssigneeSet = append(reposWithAssigneeSet, pr.Repo)
 			}
 			_, _, err = bot.GithubClient.AddReviewers(context.Background(), pr.Owner, pr.Repo, pr.PRNumber, []string{user.Github})
 			if err != nil {
-				bot.Logger.ErrorD("set-reviewer-error", logger.M{"error": err.Error(), "event-text": ev.Text, "repo": pr.Repo, "user": user.Github})
+				bot.Logger.ErrorD("set-reviewer-failure-warning", logger.M{"warning": err.Error(), "event-text": ev.Text, "repo": pr.Repo, "user": user.Github})
 			} else {
 				reposWithReviewerSet = append(reposWithReviewerSet, pr.Repo)
 			}
@@ -383,7 +429,7 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) {
 		})
 	}
 
-	return
+	return nil
 }
 
 func (bot *Bot) buildTeam(teamName string) []whoswho.User {

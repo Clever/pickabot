@@ -11,7 +11,7 @@
   branch = "master"
   name = "github.com/Clever/who-is-who"
   packages = ["go-client"]
-  revision = "8e8dab31c526ab9f99e2cbcf9da301c1c278c75d"
+  revision = "caa9b55d84e620566751669eb128ba1bf3584a96"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -20,10 +20,14 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/golang/mock"
-  packages = ["gomock"]
-  revision = "13f360950a79f5864a972c786a10a50e44b69541"
-  version = "v1.0.0"
+  packages = [
+    "gomock",
+    "mockgen",
+    "mockgen/model"
+  ]
+  revision = "5f7a43820b4647d500f43b4ffcf344eaf01bcad5"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -59,7 +63,7 @@
   branch = "master"
   name = "github.com/hashicorp/go-retryablehttp"
   packages = ["."]
-  revision = "794af36148bf63c118d6db80eb902a136b907e71"
+  revision = "e651d75abec6fbd4f2c09508f72ae7af8a8b7171"
 
 [[projects]]
   branch = "master"
@@ -95,7 +99,7 @@
   branch = "master"
   name = "github.com/texttheater/golang-levenshtein"
   packages = ["levenshtein"]
-  revision = "1a14278c506abae7c17b3cb0b84ae863c7300454"
+  revision = "d188e65d659ef53fcdb0691c12f1bba64928b649"
 
 [[projects]]
   branch = "master"
@@ -118,18 +122,32 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","context/ctxhttp"]
+  packages = [
+    "context",
+    "context/ctxhttp"
+  ]
   revision = "f5dfe339be1d06f81b22525fe34671ee7d2c8904"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/oauth2"
-  packages = [".","internal"]
+  packages = [
+    ".",
+    "internal"
+  ]
   revision = "543e37812f10c46c622c9575afd7ad22f22a12ba"
 
 [[projects]]
   name = "google.golang.org/appengine"
-  packages = ["internal","internal/base","internal/datastore","internal/log","internal/remote_api","internal/urlfetch","urlfetch"]
+  packages = [
+    "internal",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch"
+  ]
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
   version = "v1.0.0"
 
@@ -141,7 +159,11 @@
 
 [[projects]]
   name = "gopkg.in/Clever/kayvee-go.v6"
-  packages = [".","logger","router"]
+  packages = [
+    ".",
+    "logger",
+    "router"
+  ]
   revision = "e1e6fd8184162847c1123645e7058347a2fd3959"
   version = "v6.10.0"
 
@@ -160,6 +182,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5db06ea0959d61e91ffe29cd1f74b04d40b800b2ab2ab4979b2ee3e640c236c3"
+  inputs-digest = "976ee39fc7837b5521b30e1c70676b3c0afc688e47ac8568eb8263f1404b657b"
   solver-name = "gps-cdcl"
   solver-version = 1
