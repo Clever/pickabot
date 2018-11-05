@@ -79,9 +79,18 @@
 
 [[projects]]
   name = "github.com/nlopes/slack"
+  packages = [
+    ".",
+    "slackutilsx"
+  ]
+  revision = "b9033a72a20bf84563485e86a2adbea4bf265804"
+  version = "v0.4.0"
+
+[[projects]]
+  name = "github.com/pkg/errors"
   packages = ["."]
-  revision = "8ab4d0b364ef1e9af5d102531da20d5ec902b6c4"
-  version = "v0.2.0"
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -182,6 +191,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "976ee39fc7837b5521b30e1c70676b3c0afc688e47ac8568eb8263f1404b657b"
+  inputs-digest = "1931449a45e461a16217d5081fdf8b08bd4b71fd6c0eebd0da7d54371d9145dc"
   solver-name = "gps-cdcl"
   solver-version = 1
