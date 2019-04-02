@@ -543,3 +543,43 @@ func TestAddFlair(t *testing.T) {
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> add flair :dance:"))
 	assert.Equal(t, ":dance:", mockbot.UserFlair["U0"])
 }
+
+func TestOverridesCausesEmptyGithubAccount(t *testing.T) {
+	mockbot, mocks, mockCtrl := getMockBot(t)
+	defer mockCtrl.Finish()
+
+	// first we add a member to the team overrides
+	userMsg := "<@U1234> add <@U7777> to eng-empty-team"
+	msg := "Added <@U7777> to team empty-team!"
+	message := makeSlackOutgoingMessage(msg)
+	// next we try to assign a pr
+	userMsg2 := "<@U1234> assign a empty-team for https://github.com/Clever/fake-repo/pull/1"
+	msg2 := "Set <@U7777> as pull-request reviewer"
+	message2 := makeSlackOutgoingMessage("")
+
+	gomock.InOrder(
+		// mocks for adding user to empty-team
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil),
+		mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777").Return(whoswho.User{Github: "u7777", SlackID: "U7777"}, nil),
+		mocks.WhoIsWhoClient.EXPECT().UpsertUser("pickabot", gomock.Any()),
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message),
+		mocks.SlackRTM.EXPECT().SendMessage(message),
+		// mocks for pick from empty-team
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil),
+		mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil),
+		mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil),
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg2, testChannel).Return(message2),
+		mocks.SlackRTM.EXPECT().SendMessage(message2),
+	)
+
+	mockbot.DecodeMessage(makeSlackMessage(userMsg))
+	assert.Equal(t, []Override{
+		Override{
+			User:    whoswho.User{Github: "u7777", SlackID: "U7777"},
+			Team:    "empty-team",
+			Include: true,
+		},
+	}, mockbot.TeamOverrides)
+
+	mockbot.DecodeMessage(makeSlackMessage(userMsg2))
+}
