@@ -392,15 +392,21 @@ func (bot *Bot) pickIndividual(ev *slack.MessageEvent, individualSlackID string,
 }
 
 func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) error {
+	var err error
 	if user.Github == "" {
-		bot.Logger.ErrorD("set-assignee-error", logger.M{
-			"error":                fmt.Sprintf("no valid Github account for %s", user.Email),
-			"event-text":           ev.Text,
-			"user-pickabot-config": user.Pickabot,
-			"user-slack":           user.Slack,
-			"user-slack-id":        user.SlackID,
-		})
-		return fmt.Errorf("No github account for slack user <@%s>", user.SlackID)
+		// try to fetch the user from SlackID
+		user, err = bot.WhoIsWhoClient.UserBySlackID(user.SlackID)
+		// error if we can't get an update or if there is still no valid account associated
+		if user.Github == "" || err != nil {
+			bot.Logger.ErrorD("set-assignee-error", logger.M{
+				"error":                fmt.Sprintf("no valid Github account for %s", user.Email),
+				"event-text":           ev.Text,
+				"user-pickabot-config": user.Pickabot,
+				"user-slack":           user.Slack,
+				"user-slack-id":        user.SlackID,
+			})
+			return fmt.Errorf("no github account for slack user <@%s>", user.SlackID)
+		}
 	}
 	var reposWithAssigneeSet []string
 	var reposWithReviewerSet []string
