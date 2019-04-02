@@ -206,11 +206,13 @@ func TestAssignTeamMember(t *testing.T) {
 		expectedMessage string
 	}{
 		{
-			name:            "no calls if the user doesn't have a github account",
-			inputMessage:    "<@U1234> assign a example-team for https://github.com/Clever/fake-repo/pull/1",
-			expectedUser:    "U3",
-			expectations:    func(mocks *BotMocks) {},
-			expectedMessage: "Error setting <@U3> as pull-request reviewer: No github account for slack user <@U3>",
+			name:         "no calls if the user doesn't have a github account",
+			inputMessage: "<@U1234> assign a example-team for https://github.com/Clever/fake-repo/pull/1",
+			expectedUser: "U3",
+			expectations: func(mocks *BotMocks) {
+				mocks.WhoIsWhoClient.EXPECT().UserBySlackID(gomock.Any()).Return(whoswho.User{SlackID: "U3"}, nil)
+			},
+			expectedMessage: "Error setting <@U3> as pull-request reviewer: no github account for slack user <@U3>",
 		},
 		{
 			name:         "calls assign and review for a team member",
@@ -218,10 +220,10 @@ func TestAssignTeamMember(t *testing.T) {
 			expectedUser: testGithubUser.SlackID,
 			expectations: func(mocks *BotMocks) {
 				// check calls
-				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
-				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
-				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
-				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
+				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any())
+				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any())
+				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any())
+				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any())
 			},
 			expectedMessage: "Set <@G1> as pull-request reviewer",
 		},
@@ -313,20 +315,23 @@ func TestAssignIndividual(t *testing.T) {
 			expectedUser: "U5",
 			expectations: func(mocks *BotMocks) {
 				mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5").Return(whoswho.User{SlackID: "U5"}, nil)
+				mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5").Return(whoswho.User{SlackID: "U5"}, nil)
 			},
-			expectedMessage: "Error setting <@U5> as pull-request reviewer: No github account for slack user <@U5>",
+			expectedMessage: "Error setting <@U5> as pull-request reviewer: no github account for slack user <@U5>",
 		},
 		{
 			name:         "calls assign and review for an individual",
 			inputMessage: "<@U1234> assign <@G1> for https://github.com/Clever/fake-repo/pull/1 https://github.com/Clever/fake-repo2/pull/1",
 			expectedUser: testGithubUser.SlackID,
 			expectations: func(mocks *BotMocks) {
-				mocks.WhoIsWhoClient.EXPECT().UserBySlackID("G1").Return(testGithubUser, nil)
-				// check github calls
-				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
-				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()).Return(nil, nil, nil)
-				mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
-				mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()).Return(nil, nil, nil)
+				gomock.InOrder(
+					mocks.WhoIsWhoClient.EXPECT().UserBySlackID("G1").Return(testGithubUser, nil),
+					// check github calls
+					mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()),
+					mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo", 1, gomock.Any()),
+					mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()),
+					mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), testGithubOrg, "fake-repo2", 1, gomock.Any()),
+				)
 			},
 			expectedMessage: "Set <@G1> as pull-request reviewer",
 		},
@@ -542,4 +547,47 @@ func TestAddFlair(t *testing.T) {
 	assert.Equal(t, "", mockbot.UserFlair["U0"])
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> add flair :dance:"))
 	assert.Equal(t, ":dance:", mockbot.UserFlair["U0"])
+}
+
+func TestSetAssigneeWithEmptyGithubFromOverride(t *testing.T) {
+	mockbot, mocks, mockCtrl := getMockBot(t)
+	defer mockCtrl.Finish()
+
+	// first we add a member to the team overrides
+	userMsg := "<@U1234> add <@U7777> to eng-empty-team"
+	msg := "Added <@U7777> to team empty-team!"
+	message := makeSlackOutgoingMessage(msg)
+	// next we try to assign a pr
+	userMsg2 := "<@U1234> assign a empty-team for https://github.com/Clever/fake-repo/pull/1"
+	msg2 := "Set <@U7777> as pull-request reviewer"
+	message2 := makeSlackOutgoingMessage(msg2)
+
+	gomock.InOrder(
+		// mocks for adding user
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil),
+		mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777"),
+		mocks.WhoIsWhoClient.EXPECT().UpsertUser("pickabot", gomock.Any()),
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message),
+		mocks.SlackRTM.EXPECT().SendMessage(message),
+		// mocks for pick from empty-team
+		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil),
+		// verify we try to look up the user by slack id from whoswho
+		mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777").Return(whoswho.User{Github: "7777", SlackID: "U7777"}, nil),
+		// verify subsequent calls to github
+		mocks.GithubClient.EXPECT().AddAssignees(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()),
+		mocks.GithubClient.EXPECT().AddReviewers(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()),
+		mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg2, testChannel).Return(message2),
+		mocks.SlackRTM.EXPECT().SendMessage(message2),
+	)
+
+	mockbot.DecodeMessage(makeSlackMessage(userMsg))
+	assert.Equal(t, []Override{
+		Override{
+			User:    whoswho.User{SlackID: "U7777"},
+			Team:    "empty-team",
+			Include: true,
+		},
+	}, mockbot.TeamOverrides)
+
+	mockbot.DecodeMessage(makeSlackMessage(userMsg2))
 }
