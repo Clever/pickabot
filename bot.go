@@ -207,14 +207,7 @@ func (bot *Bot) findMatchingTeam(s string) (string, error) {
 
 }
 
-func (bot *Bot) setTeamOverrideInWhoIsWho(slackID, team string, include bool, until time.Time) {
-	// If user is in WIW update it,
-	user, err := bot.WhoIsWhoClient.UserBySlackID(slackID)
-	if err != nil {
-		bot.Logger.ErrorD("set-team-override-wiw-user-by-slack", logger.M{"user": slackID, "error": err.Error()})
-		return
-	}
-
+func (bot *Bot) setTeamOverrideInWhoIsWho(user whoswho.User, team string, include bool, until time.Time) {
 	o := whoswho.PickabotTeamOverride{
 		Team:    team,
 		Include: include,
@@ -236,9 +229,9 @@ func (bot *Bot) setTeamOverrideInWhoIsWho(slackID, team string, include bool, un
 	// Add override
 	user.Pickabot.TeamOverrides = append(user.Pickabot.TeamOverrides, o)
 
-	_, err = bot.WhoIsWhoClient.UpsertUser("pickabot", user)
+	_, err := bot.WhoIsWhoClient.UpsertUser("pickabot", user)
 	if err != nil {
-		bot.Logger.ErrorD("set-team-override-wiw-upsert-user", logger.M{"user": slackID, "error": err.Error()})
+		bot.Logger.ErrorD("set-team-override-wiw-upsert-user", logger.M{"user": user.SlackID, "error": err.Error()})
 		return
 	}
 }
@@ -269,13 +262,24 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string,
 		bot.TeamOverrides = append(bot.TeamOverrides[:foundIdx], bot.TeamOverrides[foundIdx+1:]...)
 	}
 
+	var user whoswho.User
+	updateWhoIsWho := true
+	user, err = bot.WhoIsWhoClient.UserBySlackID(userID)
+	if err != nil {
+		bot.Logger.ErrorD("set-team-override-wiw-user-by-slack", logger.M{"user": userID, "error": err.Error()})
+		user = whoswho.User{SlackID: userID}
+		updateWhoIsWho = false
+	}
 	bot.TeamOverrides = append(bot.TeamOverrides, Override{
-		User:    whoswho.User{SlackID: userID},
+		User:    user,
 		Team:    actualTeamName,
 		Include: addOrRemove,
 	})
 
-	bot.setTeamOverrideInWhoIsWho(userID, actualTeamName, addOrRemove, time.Time{})
+	if updateWhoIsWho {
+		// If user is in WIW update it
+		bot.setTeamOverrideInWhoIsWho(user, actualTeamName, addOrRemove, time.Time{})
+	}
 
 	if addOrRemove {
 		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(fmt.Sprintf("Added <@%s> to team %s!", userID, actualTeamName), ev.Channel))
