@@ -396,8 +396,8 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) error {
 	if user.Github == "" {
 		// try to fetch the user from SlackID
 		user, err = bot.WhoIsWhoClient.UserBySlackID(user.SlackID)
-		// error if we can't get an update or if there is still no valid account associated
-		if user.Github == "" || err != nil {
+		// error if there is still no valid account associated
+		if user.Github == "" {
 			bot.Logger.ErrorD("set-assignee-error", logger.M{
 				"error":                fmt.Sprintf("no valid Github account for %s", user.Email),
 				"event-text":           ev.Text,
@@ -406,6 +406,14 @@ func (bot *Bot) setAssignee(ev *slack.MessageEvent, user whoswho.User) error {
 				"user-slack-id":        user.SlackID,
 			})
 			return fmt.Errorf("no github account for slack user <@%s>", user.SlackID)
+		}
+		// bubble up who-is-who-error
+		if err != nil {
+			bot.Logger.ErrorD("set-assignee-wiw-error", logger.M{
+				"error":      err.Error(),
+				"event-text": ev.Text,
+			})
+			return fmt.Errorf("error fetching <@%s> from who-is-who. Please manually assign instead", user.SlackID)
 		}
 	}
 	var reposWithAssigneeSet []string
