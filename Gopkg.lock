@@ -87,11 +87,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2e3ab045fc27a4c09a45d0260e3e8a3e51f8817b3bb21503421f7bcb623d956d"
+  digest = "1:36179642b1ca5213a7aa3b645dca65a39453a757f4b4ce2769f81a3addb77d52"
   name = "github.com/knq/jwt"
   packages = ["."]
   pruneopts = ""
-  revision = "d1c794f15482298402d03a9bfde253804e55cc25"
+  revision = "fc44a4704737296ab034fd04557f9f1b36cc1612"
 
 [[projects]]
   branch = "master"
