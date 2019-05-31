@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b4ea857efe9411d2780e5cd2b71c70dc423863807eac077d7ccc72870974d985"
+  digest = "1:1f273b6adf2831b264e560997826e67aad7d6498afa0b70375a382a5a5c986b4"
   name = "github.com/Clever/who-is-who"
   packages = ["go-client"]
   pruneopts = ""
-  revision = "caa9b55d84e620566751669eb128ba1bf3584a96"
+  revision = "dd3fec4d88c76ee28b41a1f4ec65c717b2fcc7b9"
 
 [[projects]]
   digest = "1:56c130d885a4aacae1dd9c7b71cfe39912c7ebc1ff7d2b46083c8812996dc43b"
