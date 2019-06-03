@@ -27,7 +27,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d32bf76ef27a7bb80d43926adeaeab55d7d5108b56e8968303428cab2c821a1b"
+  digest = "1:2a41ca75ac19f2e0d0a7cde791bc0dddc8b66090f1a8509bca8dd8bd9f37a162"
   name = "github.com/golang/mock"
   packages = [
     "gomock",
@@ -35,7 +35,7 @@
     "mockgen/model",
   ]
   pruneopts = ""
-  revision = "5f7a43820b4647d500f43b4ffcf344eaf01bcad5"
+  revision = "140ae90f29eaaadc229f8d4b78f074b7f0611c1e"
 
 [[projects]]
   digest = "1:bcb38c8fc9b21bb8682ce2d605a7d4aeb618abc7f827e3ac0b27c0371fdb23fb"
@@ -189,6 +189,24 @@
   ]
   pruneopts = ""
   revision = "543e37812f10c46c622c9575afd7ad22f22a12ba"
+
+[[projects]]
+  branch = "master"
+  digest = "1:34989ad3a125626c05638e48e7c640f4b615ffe38f6233f5dbbd0c8f5b89a160"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/ast/astutil",
+    "go/gcexportdata",
+    "go/internal/gcimporter",
+    "go/internal/packagesdriver",
+    "go/packages",
+    "go/types/typeutil",
+    "internal/fastwalk",
+    "internal/gopathwalk",
+    "internal/semver",
+  ]
+  pruneopts = ""
+  revision = "b012c1979805ea0a881b19587663b3306232cb43"
 
 [[projects]]
   digest = "1:934fb8966f303ede63aa405e2c8d7f0a427a05ea8df335dfdc1833dd4d40756f"
