@@ -47,11 +47,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0907976e47886ab540a4837de76aea8355cff29e3a100a001f1d27c8a01647e5"
+  digest = "1:1102c55e2e22f702c37de010f1d2016c5ed68ebd8dc066f75aa8583d469b8ad4"
   name = "github.com/google/go-github"
   packages = ["github"]
   pruneopts = ""
-  revision = "8354c0739a78b30158359e98fe14ca3bb823159c"
+  revision = "6a358807e15afa9bf889893e7252f889c01a3cb3"
 
 [[projects]]
   branch = "master"
