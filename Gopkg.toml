@@ -10,7 +10,7 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "github.com/google/go-github"
-  branch = "master"
+  version = "26.0.5"
 
 [[constraint]]
   name = "github.com/knq/jwt"
