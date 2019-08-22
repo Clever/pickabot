@@ -6,7 +6,7 @@ required = ["github.com/golang/mock/mockgen"]
 
 [[constraint]]
   name = "github.com/Clever/kayvee-go"
-  version = "6.17.0"
+  version = "6.18.0"
 
 [[constraint]]
   name = "github.com/google/go-github"
