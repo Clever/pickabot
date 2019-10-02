@@ -61,7 +61,7 @@ func requireEnvVar(s string) string {
 
 func main() {
 
-	api := slack.New(os.Getenv("SLACK_ACCESS_TOKEN"))
+	api := slack.New(requireEnvVar("SLACK_ACCESS_TOKEN"))
 	slack.SetLogger(log.New(os.Stdout, "pickabot: ", log.Lshortfile|log.LstdFlags))
 	api.SetDebug(false)
 
@@ -99,7 +99,7 @@ func main() {
 		GithubOrgName:     githubOrg,
 		SlackAPIService:   &slackapi.SlackAPIServer{Api: api},
 		Logger:            lg,
-		Name:              os.Getenv("BOT_NAME"),
+		Name:              requireEnvVar("BOT_NAME"),
 		RandomSource:      rand.NewSource(time.Now().UnixNano()),
 		UserFlair:         userFlair,
 		TeamOverrides:     overrides,
