@@ -19,7 +19,7 @@ import (
 
 var lg = logger.New("pickabot")
 
-// SlackLoop is the main Slack loop for specbot, to listen for commands
+// SlackLoop is the main Slack loop, to listen for commands
 func SlackLoop(s *Bot) {
 	s.Logger.InfoD("start", logger.M{"message": "Starting up"})
 	rtm := s.SlackAPIService.NewRTM()
@@ -61,8 +61,8 @@ func requireEnvVar(s string) string {
 
 func main() {
 
-	api := slack.New(os.Getenv("SLACK_ACCESS_TOKEN"))
-	slack.SetLogger(log.New(os.Stdout, "specbot: ", log.Lshortfile|log.LstdFlags))
+	api := slack.New(requireEnvVar("SLACK_ACCESS_TOKEN"))
+	slack.SetLogger(log.New(os.Stdout, "pickabot: ", log.Lshortfile|log.LstdFlags))
 	api.SetDebug(false)
 
 	endpoint, err := discovery.URL("who-is-who", "default")
@@ -99,7 +99,7 @@ func main() {
 		GithubOrgName:     githubOrg,
 		SlackAPIService:   &slackapi.SlackAPIServer{Api: api},
 		Logger:            lg,
-		Name:              os.Getenv("BOT_NAME"),
+		Name:              requireEnvVar("BOT_NAME"),
 		RandomSource:      rand.NewSource(time.Now().UnixNano()),
 		UserFlair:         userFlair,
 		TeamOverrides:     overrides,
