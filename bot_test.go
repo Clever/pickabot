@@ -395,7 +395,7 @@ func TestAddOverride(t *testing.T) {
 
 	t.Log("Can set override to add a user to a team")
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	msg := "Added <@U5555> to team example-team!"
+	msg := "Added <@U5555> to team example-team! Remember to update https://github.com/orgs/Clever/eng-example-team/edit/review_assignment too!"
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 	mocks.SlackRTM.EXPECT().SendMessage(message)
@@ -414,7 +414,7 @@ func TestAddOverride(t *testing.T) {
 
 	t.Log("Can set override to remove a user from a team")
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	msg2 := "Removed <@U7777> from team example-team!"
+	msg2 := "Removed <@U7777> from team example-team! Remember to update https://github.com/orgs/Clever/eng-example-team/edit/review_assignment too!"
 	message2 := makeSlackOutgoingMessage(msg2)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg2, testChannel).Return(message2)
 	mocks.SlackRTM.EXPECT().SendMessage(message2)
@@ -437,7 +437,7 @@ func TestAddOverride(t *testing.T) {
 
 	t.Log("Can update a user's override")
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	msg3 := "Added <@U7777> to team example-team!"
+	msg3 := "Added <@U7777> to team example-team! Remember to update https://github.com/orgs/Clever/eng-example-team/edit/review_assignment too!"
 	message3 := makeSlackOutgoingMessage(msg3)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg3, testChannel).Return(message3)
 	mocks.SlackRTM.EXPECT().SendMessage(message3)
@@ -466,7 +466,7 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 
 	t.Log("Can set override to add a user to a team")
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	msg := "Added <@U5555> to team example-team!"
+	msg := "Added <@U5555> to team example-team! Remember to update https://github.com/orgs/Clever/eng-example-team/edit/review_assignment too!"
 	message := makeSlackOutgoingMessage(msg)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
 	mocks.SlackRTM.EXPECT().SendMessage(message)
@@ -485,7 +485,7 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 
 	t.Log("Can set override to remove a user from a team")
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	msg2 := "Removed <@U7777> from team example-team!"
+	msg2 := "Removed <@U7777> from team example-team! Remember to update https://github.com/orgs/Clever/eng-example-team/edit/review_assignment too!"
 	message2 := makeSlackOutgoingMessage(msg2)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg2, testChannel).Return(message2)
 	mocks.SlackRTM.EXPECT().SendMessage(message2)
@@ -508,7 +508,7 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 
 	t.Log("Can update a user's override")
 	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
-	msg3 := "Added <@U7777> to team example-team!"
+	msg3 := "Added <@U7777> to team example-team! Remember to update https://github.com/orgs/Clever/eng-example-team/edit/review_assignment too!"
 	message3 := makeSlackOutgoingMessage(msg3)
 	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg3, testChannel).Return(message3)
 	mocks.SlackRTM.EXPECT().SendMessage(message3)
@@ -555,7 +555,7 @@ func TestSetAssigneeWithEmptyGithubFromOverride(t *testing.T) {
 
 	// first we add a member to the team overrides
 	userMsg := "<@U1234> add <@U7777> to eng-empty-team"
-	msg := "Added <@U7777> to team empty-team!"
+	msg := "Added <@U7777> to team empty-team! Remember to update https://github.com/orgs/Clever/eng-empty-team/edit/review_assignment too!"
 	message := makeSlackOutgoingMessage(msg)
 	// next we try to assign a pr
 	userMsg2 := "<@U1234> assign a empty-team for https://github.com/Clever/fake-repo/pull/1"
