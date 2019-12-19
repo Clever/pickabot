@@ -279,11 +279,11 @@ func (bot *Bot) setTeamOverride(ev *slack.MessageEvent, userID, teamName string,
 
 	if addOrRemove {
 		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(
-			fmt.Sprintf("Added <@%s> to team %s! Remember to update https://github.com/orgs/Clever/eng-%s/edit/review_assignment too!", userID, actualTeamName, actualTeamName),
+			fmt.Sprintf("Added <@%s> to team %s! Remember to update https://github.com/orgs/Clever/teams/eng-%s/edit/review_assignment too!", userID, actualTeamName, actualTeamName),
 			ev.Channel))
 	} else {
 		bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(
-			fmt.Sprintf("Removed <@%s> from team %s! Remember to update https://github.com/orgs/Clever/eng-%s/edit/review_assignment too!", userID, actualTeamName, actualTeamName),
+			fmt.Sprintf("Removed <@%s> from team %s! Remember to update https://github.com/orgs/Clever/teams/eng-%s/edit/review_assignment too!", userID, actualTeamName, actualTeamName),
 			ev.Channel))
 	}
 }
