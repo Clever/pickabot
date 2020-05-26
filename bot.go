@@ -47,7 +47,7 @@ const individualMatcher = `<@([a-zA-Z0-9-]+)>`
 var botMessageRegex = regexp.MustCompile(`^<@(.+?)> (.*)`)
 var pickTeamRegex = regexp.MustCompile(`^\s*(pick\ and\ assign|pick|assign)\s*[a]?[n]?\s*` + teamMatcher)
 var pickIndividualRegex = regexp.MustCompile(`^\s*(pick\ and\ assign|pick|assign)\s*[a]?[n]?\s*` + individualMatcher)
-var listTeamRegex = regexp.MustCompile(`^\s*who is\s*[a]?[n]?\s*` + teamMatcher)
+var listTeamRegex = regexp.MustCompile(`^\s*who is\s*[ai]?[n]?\s*` + teamMatcher)
 var overrideTeamRegex = regexp.MustCompile(`^\s*<@(.+?)> is\s*(not)?\s*[a]?[n]? ` + teamMatcher)
 var overrideTeamRegex2 = regexp.MustCompile(`^\s*(add|remove)\s+<@(.+?)>\s+(to|from)\s+` + teamMatcher)
 var addFlairRegex = regexp.MustCompile(`^\s*add flair (.*)`)
@@ -61,7 +61,7 @@ const pickUserProblem = "Sorry, I ran into an issue picking a user. Check my log
 const helpMessage = "_Pika-pi!_\n\nI can do the following:\n\n" +
 	"`@pickabot pick a <team>` - picks a user from that team\n" +
 	"`@pickabot assign a <team> for <Github PR URL(s)>` - assigns a user from that team to the Github PR(s)\n" +
-	"`@pickabot who is a <team>` - lists users who belong to that team\n" +
+	"`@pickabot who is <team>` - lists users who belong to that team\n" +
 	"`@pickabot add @user to <team>` - adds user to team\n" +
 	"`@pickabot remove @user from <team>` - removes user from team\n" +
 	"`@pickabot add flair :emoji:` - set flair that appears when you're picked\n" +
