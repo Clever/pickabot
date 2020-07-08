@@ -74,7 +74,7 @@ func (a *AppClient) generateGithubAccessToken() error {
 
 	// ask for a token
 	client := &http.Client{}
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://api.github.com/installations/%s/access_tokens", a.InstallationID), nil)
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://api.github.com/app/installations/%s/access_tokens", a.InstallationID), nil)
 	if err != nil {
 		return err
 	}
