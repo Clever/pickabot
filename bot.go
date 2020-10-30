@@ -58,6 +58,7 @@ var addFlairRegex = regexp.MustCompile(`^\s*add flair (.*)`)
 var removeFlairRegex = regexp.MustCompile(`^\s*remove flair`)
 var setAssigneeRegex = regexp.MustCompile(`.*assign.*`)
 var helpRegex = regexp.MustCompile(`^\s*help`)
+var seeOnCallRegex = regexp.MustCompile(`\s*see on(\s|-)?call`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
@@ -69,7 +70,8 @@ const helpMessage = "_Pika-pi!_\n\nI can do the following:\n\n" +
 	"`@pickabot add @user to <team>` - adds user to team\n" +
 	"`@pickabot remove @user from <team>` - removes user from team\n" +
 	"`@pickabot add flair :emoji:` - set flair that appears when you're picked\n" +
-	"`@pickabot remove flair` - remove your flair"
+	"`@pickabot remove flair` - remove your flair\n" +
+	"`@pickabot see oncall` - see PagerDuty oncall users"
 
 // Override denotes a team override where as user should (not) be included on a team
 type Override struct {
@@ -174,6 +176,22 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 			if len(teamMatch) > 3 {
 				teamName := teamMatch[3]
 				bot.pickTeamMember(ev, teamName, setAssignee)
+				return
+			}
+
+			// See oncall
+			seeOnCall := seeOnCallRegex.FindStringSubmatch(message)
+			if len(seeOnCall) > 0 {
+				result, err := bot.PagerDutyClient.ListOnCalls(pagerduty.ListOnCallOptions{})
+				var msg string
+				if err != nil {
+					msg = "error on getting oncalls: " + err.Error()
+				} else {
+					for _, oncall := range result.OnCalls {
+						msg += fmt.Sprintf("user: %s, schedule: %s\n", oncall.User.Summary, oncall.Schedule.Summary)
+					}
+				}
+				bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(msg, ev.Channel))
 				return
 			}
 
