@@ -12,8 +12,10 @@ import (
 
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/github"
+	"github.com/Clever/pickabot/oncall"
 	"github.com/Clever/pickabot/slackapi"
 	whoswho "github.com/Clever/who-is-who/go-client"
+	pagerduty "github.com/PagerDuty/go-pagerduty"
 	"github.com/nlopes/slack"
 	lev "github.com/texttheater/golang-levenshtein/levenshtein"
 )
@@ -21,6 +23,7 @@ import (
 // generate mocks of dependencies for use during testing
 //go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/slackapi/SlackService.go SlackAPIService,SlackRTMService > slack_service_mock_test.go"
 //go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/github/client.go AppClientIface > github_mock_test.go"
+//go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/oncall/pagerduty.go PagerDutyClientInterface > pagerduty_client_mock_test.go"
 
 // Bot is the encapsulation of the logic to respond to Slack messages, by calling out to external services
 type Bot struct {
@@ -30,6 +33,7 @@ type Bot struct {
 
 	GithubClient    github.AppClientIface
 	GithubOrgName   string
+	PagerDutyClient oncall.PagerDutyClientInterface
 	SlackAPIService slackapi.SlackAPIService
 	SlackRTMService slackapi.SlackRTMService
 
@@ -54,6 +58,7 @@ var addFlairRegex = regexp.MustCompile(`^\s*add flair (.*)`)
 var removeFlairRegex = regexp.MustCompile(`^\s*remove flair`)
 var setAssigneeRegex = regexp.MustCompile(`.*assign.*`)
 var helpRegex = regexp.MustCompile(`^\s*help`)
+var seeOnCallRegex = regexp.MustCompile(`\s*see on(\s|-)?call`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
@@ -65,7 +70,8 @@ const helpMessage = "_Pika-pi!_\n\nI can do the following:\n\n" +
 	"`@pickabot add @user to <team>` - adds user to team\n" +
 	"`@pickabot remove @user from <team>` - removes user from team\n" +
 	"`@pickabot add flair :emoji:` - set flair that appears when you're picked\n" +
-	"`@pickabot remove flair` - remove your flair"
+	"`@pickabot remove flair` - remove your flair\n" +
+	"`@pickabot see oncall` - see PagerDuty oncall users"
 
 // Override denotes a team override where as user should (not) be included on a team
 type Override struct {
@@ -170,6 +176,22 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 			if len(teamMatch) > 3 {
 				teamName := teamMatch[3]
 				bot.pickTeamMember(ev, teamName, setAssignee)
+				return
+			}
+
+			// See oncall
+			seeOnCall := seeOnCallRegex.FindStringSubmatch(message)
+			if len(seeOnCall) > 0 {
+				result, err := bot.PagerDutyClient.ListOnCalls(pagerduty.ListOnCallOptions{})
+				var msg string
+				if err != nil {
+					msg = "error on getting oncalls: " + err.Error()
+				} else {
+					for _, oncall := range result.OnCalls {
+						msg += fmt.Sprintf("user: %s, schedule: %s\n", oncall.User.Summary, oncall.Schedule.Summary)
+					}
+				}
+				bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(msg, ev.Channel))
 				return
 			}
 

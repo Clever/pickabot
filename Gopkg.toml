@@ -27,3 +27,7 @@ required = ["github.com/golang/mock/mockgen"]
 [[override]]
   name = "github.com/Clever/who-is-who"
   branch = "master"
+
+[[constraint]]
+  name = "github.com/PagerDuty/go-pagerduty"
+  version = "^1.3.0"

@@ -4,13 +4,13 @@ include golang.mk
 .PHONY: all test build run
 SHELL := /bin/bash
 PKG := github.com/Clever/pickabot
-PKGS := $(shell go list ./... | grep -v /vendor | grep -v db | grep -v /mock | grep -v /slackapi)
+PKGS := $(shell go list ./... | grep -v /vendor | grep -v db | grep -v /mock | grep -v /slackapi | grep -v /oncall)
 EXECUTABLE := $(shell basename $(PKG))
 $(eval $(call golang-version-check,1.13))
 
 all: test build
 
-test: $(PKGS)
+test: generate $(PKGS)
 $(PKGS): golang-test-all-strict-deps
 	$(call golang-test-all-strict,$@)
 
