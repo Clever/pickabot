@@ -14,6 +14,12 @@
   revision = "e06ca32f089b33622c09942996cee1c7178cd916"
 
 [[projects]]
+  name = "github.com/PagerDuty/go-pagerduty"
+  packages = ["."]
+  revision = "e6408ba0e3cb2818eafabddc86198de87ce11412"
+  version = "v1.3.0"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -205,6 +211,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "821dc16d67737da4db7b80f0fab7792ab03dd92068f7c9ec8880519ec4b48539"
+  inputs-digest = "6e30b6e700063984f8b5071ee6829e9660b15e15c8c9fd96ba0820082820bfb3"
   solver-name = "gps-cdcl"
   solver-version = 1
