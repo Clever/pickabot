@@ -11,6 +11,7 @@ import (
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/github"
 	"github.com/Clever/pickabot/slackapi"
+	pagerduty "github.com/PagerDuty/go-pagerduty"
 	"github.com/nlopes/slack"
 	discovery "gopkg.in/Clever/discovery-go.v1"
 
@@ -81,6 +82,7 @@ func main() {
 	devMode := requireEnvVar("DEV_MODE") != "false"
 	githubOrg := requireEnvVar("GITHUB_ORG_NAME")
 	githubPrivateKey := requireEnvVar("GITHUB_PRIVATE_KEY")
+	pagerDutyAPIKey := requireEnvVar("PAGERDUTY_API_KEY")
 	privateKeyBytes := []byte(githubPrivateKey)
 
 	githubClient := &github.AppClient{
@@ -93,6 +95,8 @@ func main() {
 		log.Fatalf("error setting up github client: %s", err)
 	}
 
+	pagerDutyClient := pagerduty.NewClient(pagerDutyAPIKey)
+
 	pickabot := &Bot{
 		DevMode:           devMode,
 		GithubClient:      githubClient,
@@ -100,6 +104,7 @@ func main() {
 		SlackAPIService:   &slackapi.SlackAPIServer{Api: api},
 		Logger:            lg,
 		Name:              requireEnvVar("BOT_NAME"),
+		PagerDutyClient:   pagerDutyClient,
 		RandomSource:      rand.NewSource(time.Now().UnixNano()),
 		UserFlair:         userFlair,
 		TeamOverrides:     overrides,

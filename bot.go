@@ -12,8 +12,10 @@ import (
 
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/github"
+	"github.com/Clever/pickabot/oncall"
 	"github.com/Clever/pickabot/slackapi"
 	whoswho "github.com/Clever/who-is-who/go-client"
+	pagerduty "github.com/PagerDuty/go-pagerduty"
 	"github.com/nlopes/slack"
 	lev "github.com/texttheater/golang-levenshtein/levenshtein"
 )
@@ -21,6 +23,7 @@ import (
 // generate mocks of dependencies for use during testing
 //go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/slackapi/SlackService.go SlackAPIService,SlackRTMService > slack_service_mock_test.go"
 //go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/github/client.go AppClientIface > github_mock_test.go"
+//go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/oncall/pagerduty.go PagerDutyClientInterface > pagerduty_client_mock_test.go"
 
 // Bot is the encapsulation of the logic to respond to Slack messages, by calling out to external services
 type Bot struct {
@@ -30,6 +33,7 @@ type Bot struct {
 
 	GithubClient    github.AppClientIface
 	GithubOrgName   string
+	PagerDutyClient oncall.PagerDutyClientInterface
 	SlackAPIService slackapi.SlackAPIService
 	SlackRTMService slackapi.SlackRTMService
 
