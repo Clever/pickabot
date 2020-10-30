@@ -4,3 +4,5 @@ bin
 vendor
 
 pickabot.private-key.pem
+
+*_mock_test.go
