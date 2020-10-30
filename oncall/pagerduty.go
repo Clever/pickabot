@@ -10,9 +10,6 @@ import (
 	pagerduty "github.com/PagerDuty/go-pagerduty"
 )
 
-// generate mocks of dependencies for use during testing
-//go:generate sh -c "$PWD/bin/mockgen -package main -source $PWD/pagerduty.go PagerDutyClientInterface > pagerduty_client_mock_test.go"
-
 // PagerDutyClientInterface represents the endpoints available to a Pagerduty Client
 type PagerDutyClientInterface interface {
 	ListSchedules(pagerduty.ListSchedulesOptions) (*pagerduty.ListSchedulesResponse, error)
