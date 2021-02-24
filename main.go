@@ -11,7 +11,7 @@ import (
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/github"
 	"github.com/Clever/pickabot/slackapi"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	discovery "gopkg.in/Clever/discovery-go.v1"
 
 	whoswho "github.com/Clever/who-is-who/go-client"
@@ -61,9 +61,11 @@ func requireEnvVar(s string) string {
 
 func main() {
 
-	api := slack.New(requireEnvVar("SLACK_ACCESS_TOKEN"))
-	slack.SetLogger(log.New(os.Stdout, "pickabot: ", log.Lshortfile|log.LstdFlags))
-	api.SetDebug(false)
+	api := slack.New(
+		requireEnvVar("SLACK_ACCESS_TOKEN"),
+		slack.OptionLog(log.New(os.Stdout, "pickabot: ", log.Lshortfile|log.LstdFlags)),
+		slack.OptionDebug(false),
+	)
 
 	endpoint, err := discovery.URL("who-is-who", "default")
 	if err != nil {

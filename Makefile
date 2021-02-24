@@ -4,7 +4,7 @@ include golang.mk
 .PHONY: all test build run
 SHELL := /bin/bash
 PKG := github.com/Clever/pickabot
-PKGS := $(shell go list ./... | grep -v /vendor | grep -v db | grep -v /mock | grep -v /slackapi)
+PKGS := $(shell go list ./... | grep -v /vendor | grep -v db | grep -v /mock | grep -v /slackapi | grep -v /tools)
 EXECUTABLE := $(shell basename $(PKG))
 $(eval $(call golang-version-check,1.13))
 
@@ -20,8 +20,8 @@ build: generate
 run: build
 	./bin/pickabot
 
-install_deps: golang-dep-vendor-deps
-	$(call golang-dep-vendor)
+install_deps:
+	go mod vendor
 	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
 
 generate:

@@ -7,7 +7,7 @@ import (
 	"github.com/Clever/kayvee-go/logger"
 	whoswho "github.com/Clever/who-is-who/go-client"
 	"github.com/golang/mock/gomock"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	"github.com/stretchr/testify/assert"
 )
 
