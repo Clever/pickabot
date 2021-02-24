@@ -1,6 +1,6 @@
 package slackapi
 
-import "github.com/nlopes/slack"
+import "github.com/slack-go/slack"
 
 type SlackAPIService interface {
 	GetUserInfo(user string) (*slack.User, error)

@@ -14,7 +14,7 @@ import (
 	"github.com/Clever/pickabot/github"
 	"github.com/Clever/pickabot/slackapi"
 	whoswho "github.com/Clever/who-is-who/go-client"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	lev "github.com/texttheater/golang-levenshtein/levenshtein"
 )
 

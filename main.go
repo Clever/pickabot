@@ -11,7 +11,7 @@ import (
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/github"
 	"github.com/Clever/pickabot/slackapi"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 	discovery "gopkg.in/Clever/discovery-go.v1"
 
 	whoswho "github.com/Clever/who-is-who/go-client"
