@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/Clever/kayvee-go/logger"
-	"github.com/knq/jwt"
-	"github.com/knq/pemutil"
+	"github.com/kenshaw/jwt"
+	"github.com/kenshaw/pemutil"
 )
 
 // Token represents an authorization claim
