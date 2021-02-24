@@ -4,7 +4,6 @@ import "github.com/slack-go/slack"
 
 type SlackAPIService interface {
 	GetUserInfo(user string) (*slack.User, error)
-	GetChannelInfo(channel string) (*slack.Channel, error)
 	NewRTM() *slack.RTM
 }
 
@@ -35,8 +34,4 @@ func (s *SlackRTMServer) NewOutgoingMessage(text string, channel string) *slack.
 
 func (s *SlackRTMServer) SendMessage(msg *slack.OutgoingMessage) {
 	s.Rtm.SendMessage(msg)
-}
-
-func (s *SlackAPIServer) GetChannelInfo(channel string) (*slack.Channel, error) {
-	return s.Api.GetChannelInfo(channel)
 }
