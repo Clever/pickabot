@@ -6,7 +6,7 @@ SHELL := /bin/bash
 PKG := github.com/Clever/pickabot
 PKGS := $(shell go list ./... | grep -v /vendor | grep -v db | grep -v /mock | grep -v /slackapi | grep -v /tools)
 EXECUTABLE := $(shell basename $(PKG))
-$(eval $(call golang-version-check,1.13))
+$(eval $(call golang-version-check,1.16))
 
 all: test build
 
@@ -22,7 +22,7 @@ run: build
 
 install_deps:
 	go mod vendor
-	go build -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
+	go build -mod=vendor -o bin/mockgen ./vendor/github.com/golang/mock/mockgen
 
 generate:
 	go generate ./
