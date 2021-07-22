@@ -1,6 +1,6 @@
 module github.com/Clever/pickabot
 
-go 1.13
+go 1.16
 
 require (
 	github.com/Clever/kayvee-go v6.24.1+incompatible
