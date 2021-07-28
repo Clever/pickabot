@@ -11,7 +11,7 @@ SYSTEM := $(shell uname -a | cut -d" " -f1 | tr '[:upper:]' '[:lower:]')
 export TZ=UTC
 
 # go build flags for use across all commands which accept them
-export GOFLAGS=-mod=vendor
+export GOFLAGS := -mod=vendor $(GOFLAGS)
 
 # if the gopath includes several directories, use only the first
 GOPATH=$(shell echo $$GOPATH | cut -d: -f1)
