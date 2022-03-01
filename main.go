@@ -158,7 +158,7 @@ func buildTeams(client whoIsWhoClientIface) (map[string][]whoswho.User, []Overri
 		split := strings.Split(u.Team, " - ")
 		team := split[1]
 		team = strings.ToLower(team)
-		team = strings.Replace(team, " ", "-", 1)
+		team = strings.ReplaceAll(team, " ", "-")
 
 		// Write user to teams
 		teams[team] = append(teams[team], u)

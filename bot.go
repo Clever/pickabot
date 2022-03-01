@@ -178,15 +178,34 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 	}
 }
 
+// Returns all teams among teams that appear in who-is-who and all overrides
+func (bot *Bot) knownTeams() []string {
+	teamsSet := map[string]struct{}{}
+	for team := range bot.TeamToTeamMembers {
+		teamsSet[team] = struct{}{}
+	}
+
+	// TeamToTeamMembers only contains "official" teams as known by who-is-who
+	// But overrides can use any team name
+	teamOverridesLock.Lock()
+	defer teamOverridesLock.Unlock()
+	for _, override := range bot.TeamOverrides {
+		teamsSet[override.Team] = struct{}{}
+	}
+
+	teams := make([]string, 0, len(teamsSet))
+	for team := range teamsSet {
+		teams = append(teams, team)
+	}
+	return teams
+}
+
 // findMatchingTeam allops smarter lookup of team name
 // ex. "eng-team-name", "team-name", "team-namm" (slight misspelling)
 func (bot *Bot) findMatchingTeam(s string) (string, error) {
 	s = strings.TrimPrefix(s, "eng-")
 
-	teams := []string{}
-	for team := range bot.TeamToTeamMembers {
-		teams = append(teams, team)
-	}
+	teams := bot.knownTeams()
 
 	possibles := []string{}
 	for _, t := range teams {
