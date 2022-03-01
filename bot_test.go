@@ -158,6 +158,29 @@ func TestPickTeamMember(t *testing.T) {
 	}
 }
 
+// Covers the case of a team appearing only as an override, not as an official team
+func TestPickOverrideTeam(t *testing.T) {
+	input := "<@U1234> pick an override-only-team"
+	t.Log("Input = ", input)
+	mockbot, mocks, mockCtrl := getMockBot(t)
+	mockbot.TeamOverrides = []Override{{
+		User: whoswho.User{
+			SlackID: "U5",
+		},
+		Team:    "override-only-team",
+		Include: true,
+	}}
+	defer mockCtrl.Finish()
+
+	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
+	msg := "I choose you: <@U5>"
+	message := makeSlackOutgoingMessage(msg)
+	mocks.SlackRTM.EXPECT().NewOutgoingMessage(msg, testChannel).Return(message)
+	mocks.SlackRTM.EXPECT().SendMessage(message)
+
+	mockbot.DecodeMessage(makeSlackMessage(input))
+}
+
 func TestPickAssignTeamMember(t *testing.T) {
 	for _, input := range []string{
 		// Without "eng"
