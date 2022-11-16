@@ -15,7 +15,7 @@ autoscaling:
   min_count: 1
   max_count: 1
 shepherds:
-- "nathan.leiby@clever.com"
+- nathan.leiby@clever.com
 expose: []
 dependencies:
 - who-is-who
@@ -26,3 +26,6 @@ deploy_config:
   canaryInProd: false
   autoDeployEnvs:
   - production
+mesh_config:
+  dev:
+    state: mesh_only
