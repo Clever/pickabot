@@ -536,7 +536,7 @@ func (bot *Bot) listTeamMembers(ev *slack.MessageEvent, teamName string) {
 	for _, t := range teamMembers {
 		info, err := bot.SlackAPIService.GetUserInfo(t.SlackID)
 		if err != nil {
-			bot.Logger.ErrorD("slack-api-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+			bot.Logger.ErrorD("slack-api-error", logger.M{"error": err.Error(), "event-text": ev.Text, "failed-user": t.SlackID})
 			return
 		}
 
