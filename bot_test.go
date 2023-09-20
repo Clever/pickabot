@@ -60,17 +60,17 @@ func getMockBot(t *testing.T) (*Bot, *BotMocks, *gomock.Controller) {
 		UserFlair:       map[string]string{},
 		TeamOverrides:   []Override{},
 		TeamToTeamMembers: map[string][]whoswho.User{
-			"example-team": []whoswho.User{
-				whoswho.User{SlackID: "U1"},
-				whoswho.User{SlackID: "U2"},
-				whoswho.User{SlackID: "U3"},
-				whoswho.User{SlackID: "U4"},
+			"example-team": {
+				{SlackID: "U1"},
+				{SlackID: "U2"},
+				{SlackID: "U3"},
+				{SlackID: "U4"},
 			},
-			"empty-team": []whoswho.User{},
-			"same-user-team": []whoswho.User{
-				whoswho.User{SlackID: testUserID},
+			"empty-team": {},
+			"same-user-team": {
+				{SlackID: testUserID},
 			},
-			"github-user-team": []whoswho.User{testGithubUser, whoswho.User{SlackID: "G2", Github: "G2Github"}},
+			"github-user-team": {testGithubUser, {SlackID: "G2", Github: "G2Github"}},
 		},
 		Logger:         logger.New(testChannel),
 		Name:           testUserID,
@@ -428,7 +428,7 @@ func TestAddOverride(t *testing.T) {
 	assert.Equal(t, 0, len(mockbot.TeamOverrides))
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> <@U5555> is an eng-example-team"))
 	assert.Equal(t, []Override{
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U5555"},
 			Team:    "example-team",
 			Include: true,
@@ -446,12 +446,12 @@ func TestAddOverride(t *testing.T) {
 
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> <@U7777> is not eng-example-team"))
 	assert.Equal(t, []Override{
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U5555"},
 			Team:    "example-team",
 			Include: true,
 		},
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U7777"},
 			Team:    "example-team",
 			Include: false,
@@ -469,12 +469,12 @@ func TestAddOverride(t *testing.T) {
 
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> <@U7777> is an eng-example-team"))
 	assert.Equal(t, []Override{
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U5555"},
 			Team:    "example-team",
 			Include: true,
 		},
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U7777"},
 			Team:    "example-team",
 			Include: true,
@@ -499,7 +499,7 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 	assert.Equal(t, 0, len(mockbot.TeamOverrides))
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> add <@U5555> to eng-example-team"))
 	assert.Equal(t, []Override{
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U5555"},
 			Team:    "example-team",
 			Include: true,
@@ -517,12 +517,12 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> remove <@U7777> from eng-example-team"))
 	assert.Equal(t, []Override{
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U5555"},
 			Team:    "example-team",
 			Include: true,
 		},
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U7777"},
 			Team:    "example-team",
 			Include: false,
@@ -540,12 +540,12 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> add <@U7777> to eng-example-team"))
 	assert.Equal(t, []Override{
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U5555"},
 			Team:    "example-team",
 			Include: true,
 		},
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U7777"},
 			Team:    "example-team",
 			Include: true,
@@ -605,7 +605,7 @@ func TestSetAssigneeWithEmptyGithubFromOverride(t *testing.T) {
 
 	mockbot.DecodeMessage(makeSlackMessage(userMsg))
 	assert.Equal(t, []Override{
-		Override{
+		{
 			User:    whoswho.User{SlackID: "U7777"},
 			Team:    "empty-team",
 			Include: true,
