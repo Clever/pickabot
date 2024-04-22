@@ -1,13 +1,13 @@
 run:
   type: docker
 env:
-- BOT_NAME
-- DEV_MODE
-- GITHUB_APP_ID
-- GITHUB_INSTALLATION_ID
-- GITHUB_ORG_NAME
-- GITHUB_PRIVATE_KEY
-- SLACK_ACCESS_TOKEN
+  - BOT_NAME
+  - DEV_MODE
+  - GITHUB_APP_ID
+  - GITHUB_INSTALLATION_ID
+  - GITHUB_ORG_NAME
+  - GITHUB_PRIVATE_KEY
+  - SLACK_ACCESS_TOKEN
 resources:
   cpu: 0.25
   max_mem: 0.5
@@ -15,14 +15,14 @@ autoscaling:
   min_count: 1
   max_count: 1
 shepherds:
-- nathan.leiby@clever.com
+  - nathan.leiby@clever.com
 expose: []
 dependencies:
-- who-is-who
+  - who-is-who
 team: eng-infra
 pod_config:
-  group: us-west-1
+  group: us-west-2
 deploy_config:
   canaryInProd: false
   autoDeployEnvs:
-  - production
+    - production
