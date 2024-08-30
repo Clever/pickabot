@@ -19,7 +19,8 @@ import (
 
 var lg = logger.New("pickabot")
 
-// SlackLoop is the main Slack loop, to listen for commands
+// SlackLoop is the endless service loop pickabot remains in after startup --
+// e.g. the steady-state of the bot.
 func SlackLoop(s *Bot) {
 	s.Logger.InfoD("start", logger.M{"message": "Starting up"})
 	rtm := s.SlackAPIService.NewRTM()
@@ -28,9 +29,23 @@ func SlackLoop(s *Bot) {
 
 Loop:
 	for {
+
+		// Refresh the user/team cache every 10 minutes
+		if time.Since(s.LastCacheRefresh) > 10*time.Minute {
+			teams, overrides, userFlair, err := buildTeams(s.WhoIsWhoClient)
+			if err != nil {
+				s.Logger.CriticalD("user cache refresh failed. will continue without cache refresh...", logger.M{"error": err})
+			} else {
+				s.TeamToTeamMembers = teams
+				s.TeamOverrides = overrides
+				s.UserFlair = userFlair
+				s.LastCacheRefresh = time.Now()
+			}
+		}
+
 		select {
-		case msg := <-rtm.IncomingEvents:
-			switch ev := msg.Data.(type) {
+		case msg := <-rtm.IncomingEvents: // listening for slack events via the slack real-time messaging api
+			switch ev := msg.Data.(type) { // extract the type of the slack event
 			case *slack.MessageEvent:
 				s.DecodeMessage(ev)
 
@@ -73,7 +88,7 @@ func main() {
 	}
 	client := whoswho.NewClient(endpoint)
 
-	teams, overrides, userFlair, err := buildTeams(client)
+	teams, overrides, userFlair, err := buildTeams(client) // populate a cached set of teams and their members
 	if err != nil {
 		log.Fatalf("error building teams: %s", err)
 	}
@@ -107,8 +122,10 @@ func main() {
 		TeamOverrides:     overrides,
 		TeamToTeamMembers: teams,
 		WhoIsWhoClient:    client,
+		LastCacheRefresh:  time.Now(),
 	}
 
+	// The below code is just prints out the teams and their members for debugging purposes and as a sanity check
 	for teamName := range teams {
 		fmt.Printf("team=%s has members: ", teamName)
 		users := pickabot.buildTeam(teamName)
@@ -122,6 +139,7 @@ func main() {
 	SlackLoop(pickabot)
 }
 
+// This method uses the who-is-who go client to populate the set of teams and their members
 func buildTeams(client whoIsWhoClientIface) (map[string][]whoswho.User, []Override, map[string]string, error) {
 	users, err := client.GetUserList()
 	if err != nil {
