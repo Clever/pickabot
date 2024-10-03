@@ -31,8 +31,6 @@ Loop:
 	for {
 
 		// Refresh the user/team cache every 1-hour
-		// TODO: Need to verify that this is thread safe. If not, we need to add a mutex.
-		// Still need to understand how channels work in Go with respects multi-threading.
 		if time.Since(s.LastCacheRefresh) > 60*time.Minute {
 			teams, overrides, userFlair, err := buildTeams(s.WhoIsWhoClient)
 			if err != nil {
