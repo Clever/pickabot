@@ -30,7 +30,10 @@ func SlackLoop(s *Bot) {
 Loop:
 	for {
 
-		// Refresh the user/team cache every 1-hour
+		/*  Refresh the user/team cache every 1-hour -- We could do this in a separate goroutine that
+		updates the cache on a separate thread every sixty minutes. But, this explodes complexity by
+		adding race conditions, etc. and yet still wouldn't handle the case where a command is attempted
+		after a user is deactivated but before the cache refreshes. */
 		if time.Since(s.LastCacheRefresh) > 60*time.Minute {
 			teams, overrides, userFlair, err := buildTeams(s.WhoIsWhoClient)
 			if err != nil {
