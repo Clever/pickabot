@@ -18,7 +18,7 @@ In Slack, you will navigate to `pickabot-dev` as you would if chatting with any 
 
 ### Starting a Test Instance
 
-To start a test instance, do the following:
+To start a test instance of pickabot, and to run tests in Slack, do the following:
 
 1. Check that pickabot-dev is enabled in Slack. You may need to check with IT to ask IT to enable the pickabot-dev bot if it is not already.
 
