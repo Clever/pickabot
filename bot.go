@@ -39,6 +39,7 @@ type Bot struct {
 	TeamOverrides     []Override
 	RandomSource      rand.Source
 	WhoIsWhoClient    whoIsWhoClientIface
+	LastCacheRefresh  time.Time
 }
 
 const teamMatcher = `#?(eng)?[- ]?([a-zA-Z-]+)`
@@ -54,6 +55,7 @@ var addFlairRegex = regexp.MustCompile(`^\s*add flair (.*)`)
 var removeFlairRegex = regexp.MustCompile(`^\s*remove flair`)
 var setAssigneeRegex = regexp.MustCompile(`.*assign.*`)
 var helpRegex = regexp.MustCompile(`^\s*help`)
+var refreshCacheRegex = regexp.MustCompile(`^\s*refresh`)
 
 const didNotUnderstand = "Sorry, I didn't understand that"
 const couldNotFindTeam = "Sorry, I couldn't find a team with that name"
@@ -65,7 +67,8 @@ const helpMessage = "_Pika-pi!_\n\nI can do the following:\n\n" +
 	"`@pickabot add @user to <team>` - adds user to team\n" +
 	"`@pickabot remove @user from <team>` - removes user from team\n" +
 	"`@pickabot add flair :emoji:` - set flair that appears when you're picked\n" +
-	"`@pickabot remove flair` - remove your flair"
+	"`@pickabot remove flair` - remove your flair\n" +
+	"`@pickabot refresh` - refreshes the user/team cache\n"
 
 // Override denotes a team override where as user should (not) be included on a team
 type Override struct {
@@ -106,6 +109,26 @@ func (bot *Bot) DecodeMessage(ev *slack.MessageEvent) {
 				bot.Logger.Info("help match")
 				// TODO: Print help
 				bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage(helpMessage, ev.Channel))
+				return
+			}
+
+			// Refresh user/team cache
+			refreshMatch := refreshCacheRegex.FindStringSubmatch(message)
+			if len(refreshMatch) > 0 {
+				bot.Logger.Info("refresh cache match")
+
+				teams, overrides, userFlair, err := buildTeams(bot.WhoIsWhoClient)
+				if err != nil {
+					bot.Logger.CriticalD("user cache refresh failed", logger.M{"error": err})
+					bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage("user cache refresh failed", ev.Channel))
+				} else {
+					bot.TeamToTeamMembers = teams
+					bot.TeamOverrides = overrides
+					bot.UserFlair = userFlair
+					bot.LastCacheRefresh = time.Now()
+					bot.SlackRTMService.SendMessage(bot.SlackRTMService.NewOutgoingMessage("refreshed user cache", ev.Channel))
+				}
+
 				return
 			}
 
