@@ -34,6 +34,20 @@ func (m *MockSlackAPIService) EXPECT() *MockSlackAPIServiceMockRecorder {
 	return m.recorder
 }
 
+// GetAPI mocks base method.
+func (m *MockSlackAPIService) GetAPI() *slack.Client {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAPI")
+	ret0, _ := ret[0].(*slack.Client)
+	return ret0
+}
+
+// GetAPI indicates an expected call of GetAPI.
+func (mr *MockSlackAPIServiceMockRecorder) GetAPI() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAPI", reflect.TypeOf((*MockSlackAPIService)(nil).GetAPI))
+}
+
 // GetUserInfo mocks base method.
 func (m *MockSlackAPIService) GetUserInfo(user string) (*slack.User, error) {
 	m.ctrl.T.Helper()
@@ -49,65 +63,39 @@ func (mr *MockSlackAPIServiceMockRecorder) GetUserInfo(user interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserInfo", reflect.TypeOf((*MockSlackAPIService)(nil).GetUserInfo), user)
 }
 
-// NewRTM mocks base method.
-func (m *MockSlackAPIService) NewRTM() *slack.RTM {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewRTM")
-	ret0, _ := ret[0].(*slack.RTM)
-	return ret0
-}
-
-// NewRTM indicates an expected call of NewRTM.
-func (mr *MockSlackAPIServiceMockRecorder) NewRTM() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewRTM", reflect.TypeOf((*MockSlackAPIService)(nil).NewRTM))
-}
-
-// MockSlackRTMService is a mock of SlackRTMService interface.
-type MockSlackRTMService struct {
+// MockSlackEventsService is a mock of SlackEventsService interface.
+type MockSlackEventsService struct {
 	ctrl     *gomock.Controller
-	recorder *MockSlackRTMServiceMockRecorder
+	recorder *MockSlackEventsServiceMockRecorder
 }
 
-// MockSlackRTMServiceMockRecorder is the mock recorder for MockSlackRTMService.
-type MockSlackRTMServiceMockRecorder struct {
-	mock *MockSlackRTMService
+// MockSlackEventsServiceMockRecorder is the mock recorder for MockSlackEventsService.
+type MockSlackEventsServiceMockRecorder struct {
+	mock *MockSlackEventsService
 }
 
-// NewMockSlackRTMService creates a new mock instance.
-func NewMockSlackRTMService(ctrl *gomock.Controller) *MockSlackRTMService {
-	mock := &MockSlackRTMService{ctrl: ctrl}
-	mock.recorder = &MockSlackRTMServiceMockRecorder{mock}
+// NewMockSlackEventsService creates a new mock instance.
+func NewMockSlackEventsService(ctrl *gomock.Controller) *MockSlackEventsService {
+	mock := &MockSlackEventsService{ctrl: ctrl}
+	mock.recorder = &MockSlackEventsServiceMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockSlackRTMService) EXPECT() *MockSlackRTMServiceMockRecorder {
+func (m *MockSlackEventsService) EXPECT() *MockSlackEventsServiceMockRecorder {
 	return m.recorder
 }
 
-// NewOutgoingMessage mocks base method.
-func (m *MockSlackRTMService) NewOutgoingMessage(text, channel string) *slack.OutgoingMessage {
+// PostMessage mocks base method.
+func (m *MockSlackEventsService) PostMessage(channel, text string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewOutgoingMessage", text, channel)
-	ret0, _ := ret[0].(*slack.OutgoingMessage)
+	ret := m.ctrl.Call(m, "PostMessage", channel, text)
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// NewOutgoingMessage indicates an expected call of NewOutgoingMessage.
-func (mr *MockSlackRTMServiceMockRecorder) NewOutgoingMessage(text, channel interface{}) *gomock.Call {
+// PostMessage indicates an expected call of PostMessage.
+func (mr *MockSlackEventsServiceMockRecorder) PostMessage(channel, text interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewOutgoingMessage", reflect.TypeOf((*MockSlackRTMService)(nil).NewOutgoingMessage), text, channel)
-}
-
-// SendMessage mocks base method.
-func (m *MockSlackRTMService) SendMessage(msg *slack.OutgoingMessage) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SendMessage", msg)
-}
-
-// SendMessage indicates an expected call of SendMessage.
-func (mr *MockSlackRTMServiceMockRecorder) SendMessage(msg interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockSlackRTMService)(nil).SendMessage), msg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostMessage", reflect.TypeOf((*MockSlackEventsService)(nil).PostMessage), channel, text)
 }
