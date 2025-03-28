@@ -19,6 +19,7 @@ import (
 
 var lg = logger.New("pickabot")
 
+// test
 // SlackLoop is the endless service loop pickabot remains in after startup --
 // e.g. the steady-state of the bot.
 func SlackLoop(s *Bot) {
