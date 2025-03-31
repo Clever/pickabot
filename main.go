@@ -11,7 +11,6 @@ import (
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/github"
 	"github.com/Clever/pickabot/slackapi"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/slack-go/slack"
 	discovery "gopkg.in/Clever/discovery-go.v1"
 
@@ -37,10 +36,6 @@ func SlackLoop(s *Bot) {
 
 	go func() {
 		for evt := range client.Events {
-			s.Logger.InfoD("event-received!", logger.M{
-				"event_type": evt.Type,
-				"ZZDump":     spew.Sdump(evt),
-			})
 			switch evt.Type {
 			case socketmode.EventTypeConnecting:
 				s.Logger.InfoD("connecting", logger.M{"message": "Connecting to Slack with Socket Mode..."})
@@ -65,15 +60,13 @@ func SlackLoop(s *Bot) {
 					case *slackevents.AppMentionEvent:
 						s.Logger.InfoD("app-mention", logger.M{"event": ev})
 						messageEvent := &slackevents.MessageEvent{
-							Type:            ev.Type,
-							User:            ev.User,
-							Text:            ev.Text,
-							Channel:         ev.Channel,
-							ThreadTimeStamp: ev.ThreadTimeStamp,
-							TimeStamp:       ev.TimeStamp,
+							Type:      ev.Type,
+							User:      ev.User,
+							Text:      ev.Text,
+							Channel:   ev.Channel,
+							TimeStamp: ev.TimeStamp,
 						}
 						s.DecodeMessage(messageEvent)
-						s.Logger.InfoD("app-mention-msg-event", logger.M{"message-event": messageEvent})
 					}
 				}
 			}
