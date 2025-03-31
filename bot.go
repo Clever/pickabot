@@ -94,6 +94,9 @@ func (bot *Bot) DecodeMessage(ev *slackevents.MessageEvent) {
 			return
 		}
 
+		bot.Logger.InfoD("listening", logger.M{"message": "Saw message for", "data": info.Name, "my-name": bot.Name})
+
+		// cleanup bot name to match info name for test bots
 		cleanBotName := strings.ReplaceAll(strings.ReplaceAll(bot.Name, "-", ""), "_", "")
 		if info.Name == cleanBotName {
 			message := result[2]
