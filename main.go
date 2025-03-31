@@ -36,6 +36,8 @@ func SlackLoop(s *Bot) {
 
 	go func() {
 		for evt := range client.Events {
+			s.Logger.InfoD("event-received!", logger.M{"event_type": evt.Type})
+			client.Ack(*evt.Request)
 			switch evt.Type {
 			case socketmode.EventTypeConnecting:
 				s.Logger.InfoD("connecting", logger.M{"message": "Connecting to Slack with Socket Mode..."})
