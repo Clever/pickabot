@@ -37,8 +37,10 @@ func SlackLoop(s *Bot) {
 
 	go func() {
 		for evt := range client.Events {
-			s.Logger.InfoD("event-received!", logger.M{"event_type": evt.Type})
-			spew.Dump(evt)
+			s.Logger.InfoD("event-received!", logger.M{
+				"event_type": evt.Type,
+				"Dump":       spew.Sdump(evt),
+			})
 			switch evt.Type {
 			case socketmode.EventTypeConnecting:
 				s.Logger.InfoD("connecting", logger.M{"message": "Connecting to Slack with Socket Mode..."})
@@ -60,8 +62,17 @@ func SlackLoop(s *Bot) {
 				case slackevents.CallbackEvent:
 					innerEvent := eventsAPIEvent.InnerEvent
 					switch ev := innerEvent.Data.(type) {
-					case *slackevents.MessageEvent:
-						s.DecodeMessage(ev)
+					case *slackevents.AppMentionEvent:
+						s.Logger.InfoD("app-mention", logger.M{"event": ev})
+						messageEvent := &slackevents.MessageEvent{
+							Type:            ev.Type,
+							User:            ev.User,
+							Text:            ev.Text,
+							Channel:         ev.Channel,
+							ThreadTimeStamp: ev.ThreadTimeStamp,
+							TimeStamp:       ev.TimeStamp,
+						}
+						s.DecodeMessage(messageEvent)
 					}
 				}
 			}
