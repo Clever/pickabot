@@ -57,8 +57,16 @@ func SlackLoop(s *Bot) {
 				case slackevents.CallbackEvent:
 					innerEvent := eventsAPIEvent.InnerEvent
 					switch ev := innerEvent.Data.(type) {
-					case *slackevents.MessageEvent:
-						s.DecodeMessage(ev)
+					case *slackevents.AppMentionEvent:
+						s.Logger.InfoD("app-mention", logger.M{"event": ev})
+						messageEvent := &slackevents.MessageEvent{
+							Type:      ev.Type,
+							User:      ev.User,
+							Text:      ev.Text,
+							Channel:   ev.Channel,
+							TimeStamp: ev.TimeStamp,
+						}
+						s.DecodeMessage(messageEvent)
 					}
 				}
 			}
