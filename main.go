@@ -39,7 +39,7 @@ func SlackLoop(s *Bot) {
 		for evt := range client.Events {
 			s.Logger.InfoD("event-received!", logger.M{
 				"event_type": evt.Type,
-				"Dump":       spew.Sdump(evt),
+				"ZZDump":     spew.Sdump(evt),
 			})
 			switch evt.Type {
 			case socketmode.EventTypeConnecting:
@@ -73,6 +73,7 @@ func SlackLoop(s *Bot) {
 							TimeStamp:       ev.TimeStamp,
 						}
 						s.DecodeMessage(messageEvent)
+						s.Logger.InfoD("app-mention-msg-event", logger.M{"message-event": messageEvent})
 					}
 				}
 			}

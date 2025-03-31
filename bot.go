@@ -86,6 +86,14 @@ func (bot *Bot) DecodeMessage(ev *slackevents.MessageEvent) {
 		return
 	}
 
+	bot.Logger.InfoD("decode-message", logger.M{"message-event": ev})
+
+	// respond with a received message in the channel
+	err := bot.SlackEventsService.PostMessage(ev.Channel, fmt.Sprintf("Received message: %s", ev.Text))
+	if err != nil {
+		bot.Logger.ErrorD("message-error", logger.M{"error": err.Error()})
+	}
+
 	result := botMessageRegex.FindStringSubmatch(ev.Text)
 	if len(result) > 1 {
 		info, err := bot.SlackAPIService.GetUserInfo(result[1])
