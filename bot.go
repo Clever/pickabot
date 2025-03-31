@@ -88,12 +88,6 @@ func (bot *Bot) DecodeMessage(ev *slackevents.MessageEvent) {
 
 	bot.Logger.InfoD("decode-message", logger.M{"message-event": ev})
 
-	// respond with a received message in the channel
-	err := bot.SlackEventsService.PostMessage(ev.Channel, fmt.Sprintf("Received message: %s", ev.Text))
-	if err != nil {
-		bot.Logger.ErrorD("message-error", logger.M{"error": err.Error()})
-	}
-
 	result := botMessageRegex.FindStringSubmatch(ev.Text)
 	if len(result) > 1 {
 		info, err := bot.SlackAPIService.GetUserInfo(result[1])
@@ -101,9 +95,11 @@ func (bot *Bot) DecodeMessage(ev *slackevents.MessageEvent) {
 			bot.Logger.ErrorD("listen-error", logger.M{"error": err.Error(), "event-text": ev.Text})
 			return
 		}
-
+		// swad 1
 		bot.Logger.InfoD("listening", logger.M{"message": "Saw message for", "data": info.Name, "my-name": bot.Name})
-		if info.Name == bot.Name {
+		// swad 2
+
+		if info.Name == bot.Name || bot.Name == "pickabot-dev_v2" {
 			message := result[2]
 			message = strings.Trim(message, " ")
 			bot.Logger.InfoD("listening", logger.M{"message": message})
