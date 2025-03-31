@@ -11,6 +11,7 @@ import (
 	"github.com/Clever/kayvee-go/logger"
 	"github.com/Clever/pickabot/github"
 	"github.com/Clever/pickabot/slackapi"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/slack-go/slack"
 	discovery "gopkg.in/Clever/discovery-go.v1"
 
@@ -36,8 +37,21 @@ func SlackLoop(s *Bot) {
 
 	go func() {
 		for evt := range client.Events {
-			s.Logger.InfoD("event-received!", logger.M{"event_type": evt.Type})
-			client.Ack(*evt.Request)
+			typ := evt.Type
+			data := evt.Data
+			payload := ""
+			if evt.Request != nil {
+				payload = string(evt.Request.Payload)
+			}
+
+			s.Logger.InfoD("event-received!", logger.M{
+				"event_type": typ,
+				"Data":       data,
+				"Payload":    payload,
+				// "socket_type": socketmode.EventType(evt.Type),
+			})
+			spew.Dump(evt.Request)
+			// client.Ack(*evt.Request)
 			switch evt.Type {
 			case socketmode.EventTypeConnecting:
 				s.Logger.InfoD("connecting", logger.M{"message": "Connecting to Slack with Socket Mode..."})
@@ -53,7 +67,7 @@ func SlackLoop(s *Bot) {
 				}
 
 				s.Logger.InfoD("event-received", logger.M{"event_type": eventsAPIEvent.Type})
-				client.Ack(*evt.Request)
+				// client.Ack(*evt.Request)
 
 				switch eventsAPIEvent.Type {
 				case slackevents.CallbackEvent:
