@@ -87,19 +87,9 @@ func TestMessageNotForAnyone(t *testing.T) {
 	mockbot.DecodeMessage(makeSlackMessage("hello"))
 }
 
-func TestMessageNotForBot(t *testing.T) {
-	mockbot, mocks, mockCtrl := getMockBot(t)
-	defer mockCtrl.Finish()
-
-	mocks.SlackAPI.EXPECT().GetUserInfo("U9876").Return(makeSlackUser("not-mockbot-test"), nil)
-	mockbot.DecodeMessage(makeSlackMessage("<@U9876> hey"))
-}
-
 func TestEmptyMessageForBot(t *testing.T) {
-	mockbot, mocks, mockCtrl := getMockBot(t)
+	mockbot, _, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
-
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> "))
 }
@@ -108,7 +98,6 @@ func TestNotUnderstoodMessageForBot(t *testing.T) {
 	mockbot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, didNotUnderstand)
 
 	mockbot.DecodeMessage(makeSlackMessage("<@U1234> hey2"))
@@ -137,7 +126,6 @@ func TestPickTeamMember(t *testing.T) {
 		mockbot, mocks, mockCtrl := getMockBot(t)
 		defer mockCtrl.Finish()
 
-		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 		msg := "I choose you: <@U3>"
 		mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
 
@@ -159,7 +147,6 @@ func TestPickOverrideTeam(t *testing.T) {
 	}}
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := "I choose you: <@U5>"
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
 
@@ -195,7 +182,6 @@ func TestPickAssignTeamMember(t *testing.T) {
 		mockbot, mocks, mockCtrl := getMockBot(t)
 		defer mockCtrl.Finish()
 
-		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 		msg := "Set <@G1> as pull-request reviewer"
 		mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
 
@@ -238,7 +224,6 @@ func TestAssignTeamMember(t *testing.T) {
 		mockbot, mocks, mockCtrl := getMockBot(t)
 		defer mockCtrl.Finish()
 
-		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 		test.expectations(mocks)
 		mocks.SlackEvents.EXPECT().PostMessage(testChannel, test.expectedMessage)
 
@@ -250,7 +235,6 @@ func TestPickTeamMemberInvalidTeam(t *testing.T) {
 	mockbot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := couldNotFindTeam
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
 
@@ -268,7 +252,6 @@ func TestPickIndividual(t *testing.T) {
 		mockbot, mocks, mockCtrl := getMockBot(t)
 		defer mockCtrl.Finish()
 
-		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 		mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5").Return(whoswho.User{SlackID: "U5"}, nil)
 		msg := "I choose you: <@U5>"
 		mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
@@ -290,7 +273,6 @@ func TestPickAssignIndividual(t *testing.T) {
 		mockbot, mocks, mockCtrl := getMockBot(t)
 		defer mockCtrl.Finish()
 
-		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 		mocks.WhoIsWhoClient.EXPECT().UserBySlackID("G1").Return(testGithubUser, nil)
 		msg := "Set <@G1> as pull-request reviewer"
 		mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
@@ -338,7 +320,6 @@ func TestAssignIndividual(t *testing.T) {
 		mockbot, mocks, mockCtrl := getMockBot(t)
 		defer mockCtrl.Finish()
 
-		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 		test.expectations(mocks)
 		mocks.SlackEvents.EXPECT().PostMessage(testChannel, test.expectedMessage)
 
@@ -350,7 +331,6 @@ func TestPickIndividualInvalidName(t *testing.T) {
 	mockbot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := didNotUnderstand
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
 
@@ -361,7 +341,6 @@ func TestPickUserNoUserError(t *testing.T) {
 	mockbot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := pickUserProblem
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
 
@@ -372,7 +351,6 @@ func TestPickUserNoUserErrorDueToOmit(t *testing.T) {
 	mockbot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := pickUserProblem
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
 
@@ -384,7 +362,6 @@ func TestAddOverride(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	t.Log("Can set override to add a user to a team")
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := "Added <@U5555> to team example-team! Remember to update https://github.com/orgs/Clever/teams/eng-example-team/edit/review_assignment too!"
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
 	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5555")
@@ -401,7 +378,6 @@ func TestAddOverride(t *testing.T) {
 	}, mockbot.TeamOverrides)
 
 	t.Log("Can set override to remove a user from a team")
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg2 := "Removed <@U7777> from team example-team! Remember to update https://github.com/orgs/Clever/teams/eng-example-team/edit/review_assignment too!"
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg2)
 	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777")
@@ -422,7 +398,6 @@ func TestAddOverride(t *testing.T) {
 	}, mockbot.TeamOverrides)
 
 	t.Log("Can update a user's override")
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg3 := "Added <@U7777> to team example-team! Remember to update https://github.com/orgs/Clever/teams/eng-example-team/edit/review_assignment too!"
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg3)
 	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777")
@@ -449,7 +424,6 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	t.Log("Can set override to add a user to a team")
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := "Added <@U5555> to team example-team! Remember to update https://github.com/orgs/Clever/teams/eng-example-team/edit/review_assignment too!"
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
 	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U5555")
@@ -466,7 +440,6 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 	}, mockbot.TeamOverrides)
 
 	t.Log("Can set override to remove a user from a team")
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg2 := "Removed <@U7777> from team example-team! Remember to update https://github.com/orgs/Clever/teams/eng-example-team/edit/review_assignment too!"
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg2)
 	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777")
@@ -487,7 +460,6 @@ func TestAddOverrideAlternateMessageMatcher(t *testing.T) {
 	}, mockbot.TeamOverrides)
 
 	t.Log("Can update a user's override")
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg3 := "Added <@U7777> to team example-team! Remember to update https://github.com/orgs/Clever/teams/eng-example-team/edit/review_assignment too!"
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg3)
 	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777")
@@ -513,7 +485,6 @@ func TestAddFlair(t *testing.T) {
 	mockbot, mocks, mockCtrl := getMockBot(t)
 	defer mockCtrl.Finish()
 
-	mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil)
 	msg := "<@U0>, I like your style!"
 	mocks.SlackEvents.EXPECT().PostMessage(testChannel, msg)
 	mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U0")
@@ -540,11 +511,9 @@ func TestSetAssigneeWithEmptyGithubFromOverride(t *testing.T) {
 
 	gomock.InOrder(
 		// mocks for adding user
-		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil),
 		mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777"),
 		mocks.WhoIsWhoClient.EXPECT().UpsertUser("pickabot", gomock.Any()),
 		// mocks for pick from empty-team
-		mocks.SlackAPI.EXPECT().GetUserInfo("U1234").Return(makeSlackUser(testUserID), nil),
 		// verify we try to look up the user by slack id from whoswho
 		mocks.WhoIsWhoClient.EXPECT().UserBySlackID("U7777").Return(whoswho.User{Github: "7777", SlackID: "U7777"}, nil),
 		// verify subsequent calls to github
