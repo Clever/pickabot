@@ -88,126 +88,114 @@ func (bot *Bot) DecodeMessage(ev *slackevents.MessageEvent) {
 
 	result := botMessageRegex.FindStringSubmatch(ev.Text)
 	if len(result) > 1 {
-		info, err := bot.SlackAPIService.GetUserInfo(result[1])
-		if err != nil {
-			bot.Logger.ErrorD("listen-error", logger.M{"error": err.Error(), "event-text": ev.Text})
+		message := result[2]
+		message = strings.Trim(message, " ")
+		bot.Logger.InfoD("listening", logger.M{"message": message})
+		if message == "" {
 			return
 		}
 
-		bot.Logger.InfoD("listening", logger.M{"message": "Saw message for", "data": info.Name, "my-name": bot.Name})
-
-		// cleanup bot name to match info name for test bots
-		cleanBotName := strings.ReplaceAll(strings.ReplaceAll(bot.Name, "-", ""), "_", "")
-		if info.Name == cleanBotName {
-			message := result[2]
-			message = strings.Trim(message, " ")
-			bot.Logger.InfoD("listening", logger.M{"message": message})
-			if message == "" {
-				return
+		// Help
+		helpMatch := helpRegex.FindStringSubmatch(message)
+		if len(helpMatch) > 0 {
+			bot.Logger.Info("help match")
+			err := bot.SlackEventsService.PostMessage(ev.Channel, helpMessage)
+			if err != nil {
+				bot.Logger.ErrorD("help-message-error", logger.M{"error": err.Error()})
 			}
-
-			// Help
-			helpMatch := helpRegex.FindStringSubmatch(message)
-			if len(helpMatch) > 0 {
-				bot.Logger.Info("help match")
-				err := bot.SlackEventsService.PostMessage(ev.Channel, helpMessage)
-				if err != nil {
-					bot.Logger.ErrorD("help-message-error", logger.M{"error": err.Error()})
-				}
-				return
-			}
-
-			// Refresh user/team cache
-			refreshMatch := refreshCacheRegex.FindStringSubmatch(message)
-			if len(refreshMatch) > 0 {
-				bot.Logger.Info("refresh cache match")
-
-				teams, overrides, userFlair, err := buildTeams(bot.WhoIsWhoClient)
-				if err != nil {
-					bot.Logger.CriticalD("user cache refresh failed", logger.M{"error": err})
-					err = bot.SlackEventsService.PostMessage(ev.Channel, "user cache refresh failed")
-					if err != nil {
-						bot.Logger.ErrorD("refresh-message-error", logger.M{"error": err.Error()})
-					}
-				} else {
-					bot.TeamToTeamMembers = teams
-					bot.TeamOverrides = overrides
-					bot.UserFlair = userFlair
-					bot.LastCacheRefresh = time.Now()
-					err = bot.SlackEventsService.PostMessage(ev.Channel, "refreshed user cache")
-					if err != nil {
-						bot.Logger.ErrorD("refresh-message-error", logger.M{"error": err.Error()})
-					}
-				}
-				return
-			}
-
-			// Override team
-			overrideMatch := overrideTeamRegex.FindStringSubmatch(message)
-			if len(overrideMatch) > 4 {
-				userID := overrideMatch[1]
-				addOrRemove := overrideMatch[2] != "not"
-				teamName := overrideMatch[4]
-				bot.setTeamOverride(ev, userID, teamName, addOrRemove)
-				return
-			}
-			// Override team (alternate matcher)
-			overrideMatch2 := overrideTeamRegex2.FindStringSubmatch(message)
-			if len(overrideMatch2) > 5 {
-				userID := overrideMatch2[2]
-				addOrRemove := overrideMatch2[1] == "add"
-				teamName := overrideMatch2[5]
-				bot.setTeamOverride(ev, userID, teamName, addOrRemove)
-				return
-			}
-
-			// List team members
-			listTeamMatch := listTeamRegex.FindStringSubmatch(message)
-			if len(listTeamMatch) > 2 {
-				teamName := listTeamMatch[2]
-				bot.listTeamMembers(ev, teamName)
-				return
-
-			}
-
-			// Add flair
-			addFlairMatch := addFlairRegex.FindStringSubmatch(message)
-			if len(addFlairMatch) > 1 {
-				flair := addFlairMatch[1]
-				bot.addFlair(ev, flair)
-				return
-			}
-
-			// Remove flair
-			removeFlairMatch := removeFlairRegex.FindStringSubmatch(message)
-			if len(removeFlairMatch) > 0 {
-				bot.removeFlair(ev)
-				return
-			}
-
-			// Determine if doing PR assignment
-			setAssigneeMatch := setAssigneeRegex.FindStringSubmatch(message)
-			setAssignee := len(setAssigneeMatch) > 0
-
-			// Check if picking an individual
-			// TODO: must come before team because team regex also matches individual regex
-			individualMatch := pickIndividualRegex.FindStringSubmatch(message)
-			if len(individualMatch) > 2 {
-				individualName := individualMatch[2]
-				bot.pickIndividual(ev, individualName, setAssignee)
-				return
-			}
-
-			// Pick a team member
-			teamMatch := pickTeamRegex.FindStringSubmatch(message)
-			if len(teamMatch) > 3 {
-				teamName := teamMatch[3]
-				bot.pickTeamMember(ev, teamName, setAssignee)
-				return
-			}
-
-			bot.SlackEventsService.PostMessage(ev.Channel, didNotUnderstand)
+			return
 		}
+
+		// Refresh user/team cache
+		refreshMatch := refreshCacheRegex.FindStringSubmatch(message)
+		if len(refreshMatch) > 0 {
+			bot.Logger.Info("refresh cache match")
+
+			teams, overrides, userFlair, err := buildTeams(bot.WhoIsWhoClient)
+			if err != nil {
+				bot.Logger.CriticalD("user cache refresh failed", logger.M{"error": err})
+				err = bot.SlackEventsService.PostMessage(ev.Channel, "user cache refresh failed")
+				if err != nil {
+					bot.Logger.ErrorD("refresh-message-error", logger.M{"error": err.Error()})
+				}
+			} else {
+				bot.TeamToTeamMembers = teams
+				bot.TeamOverrides = overrides
+				bot.UserFlair = userFlair
+				bot.LastCacheRefresh = time.Now()
+				err = bot.SlackEventsService.PostMessage(ev.Channel, "refreshed user cache")
+				if err != nil {
+					bot.Logger.ErrorD("refresh-message-error", logger.M{"error": err.Error()})
+				}
+			}
+			return
+		}
+
+		// Override team
+		overrideMatch := overrideTeamRegex.FindStringSubmatch(message)
+		if len(overrideMatch) > 4 {
+			userID := overrideMatch[1]
+			addOrRemove := overrideMatch[2] != "not"
+			teamName := overrideMatch[4]
+			bot.setTeamOverride(ev, userID, teamName, addOrRemove)
+			return
+		}
+		// Override team (alternate matcher)
+		overrideMatch2 := overrideTeamRegex2.FindStringSubmatch(message)
+		if len(overrideMatch2) > 5 {
+			userID := overrideMatch2[2]
+			addOrRemove := overrideMatch2[1] == "add"
+			teamName := overrideMatch2[5]
+			bot.setTeamOverride(ev, userID, teamName, addOrRemove)
+			return
+		}
+
+		// List team members
+		listTeamMatch := listTeamRegex.FindStringSubmatch(message)
+		if len(listTeamMatch) > 2 {
+			teamName := listTeamMatch[2]
+			bot.listTeamMembers(ev, teamName)
+			return
+
+		}
+
+		// Add flair
+		addFlairMatch := addFlairRegex.FindStringSubmatch(message)
+		if len(addFlairMatch) > 1 {
+			flair := addFlairMatch[1]
+			bot.addFlair(ev, flair)
+			return
+		}
+
+		// Remove flair
+		removeFlairMatch := removeFlairRegex.FindStringSubmatch(message)
+		if len(removeFlairMatch) > 0 {
+			bot.removeFlair(ev)
+			return
+		}
+
+		// Determine if doing PR assignment
+		setAssigneeMatch := setAssigneeRegex.FindStringSubmatch(message)
+		setAssignee := len(setAssigneeMatch) > 0
+
+		// Check if picking an individual
+		// TODO: must come before team because team regex also matches individual regex
+		individualMatch := pickIndividualRegex.FindStringSubmatch(message)
+		if len(individualMatch) > 2 {
+			individualName := individualMatch[2]
+			bot.pickIndividual(ev, individualName, setAssignee)
+			return
+		}
+
+		// Pick a team member
+		teamMatch := pickTeamRegex.FindStringSubmatch(message)
+		if len(teamMatch) > 3 {
+			teamName := teamMatch[3]
+			bot.pickTeamMember(ev, teamName, setAssignee)
+			return
+		}
+
+		bot.SlackEventsService.PostMessage(ev.Channel, didNotUnderstand)
 	}
 }
 
