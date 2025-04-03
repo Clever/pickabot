@@ -8,6 +8,7 @@ env:
   - GITHUB_ORG_NAME
   - GITHUB_PRIVATE_KEY
   - SLACK_ACCESS_TOKEN
+  - SLACK_APP_TOKEN
 resources:
   cpu: 0.25
   max_mem: 0.5

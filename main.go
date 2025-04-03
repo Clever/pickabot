@@ -15,6 +15,8 @@ import (
 	discovery "gopkg.in/Clever/discovery-go.v1"
 
 	whoswho "github.com/Clever/who-is-who/go-client"
+	"github.com/slack-go/slack/slackevents"
+	"github.com/slack-go/slack/socketmode"
 )
 
 var lg = logger.New("pickabot")
@@ -23,50 +25,71 @@ var lg = logger.New("pickabot")
 // e.g. the steady-state of the bot.
 func SlackLoop(s *Bot) {
 	s.Logger.InfoD("start", logger.M{"message": "Starting up"})
-	rtm := s.SlackAPIService.NewRTM()
-	s.SlackRTMService = &slackapi.SlackRTMServer{Rtm: rtm}
-	go rtm.ManageConnection()
 
-Loop:
-	for {
+	// Create socket mode client
+	client := socketmode.New(
+		s.SlackAPIService.GetAPI(),
+		socketmode.OptionDebug(false),
+		socketmode.OptionLog(log.New(os.Stdout, "socketmode: ", log.Lshortfile|log.LstdFlags)),
+	)
+	s.SlackEventsService = &slackapi.SlackEventsClient{Client: client}
 
-		/*  Refresh the user/team cache every 1-hour -- We could do this in a separate goroutine that
-		updates the cache on a separate thread every sixty minutes. But, this explodes complexity by
-		adding race conditions, etc. and yet still wouldn't handle the case where a command is attempted
-		after a user is deactivated but before the cache refreshes. */
-		if time.Since(s.LastCacheRefresh) > 60*time.Minute {
+	go func() {
+		for evt := range client.Events {
+			switch evt.Type {
+			case socketmode.EventTypeConnecting:
+				s.Logger.InfoD("connecting", logger.M{"message": "Connecting to Slack with Socket Mode..."})
+			case socketmode.EventTypeConnectionError:
+				s.Logger.InfoD("connection-failed", logger.M{"message": "Connection failed. Retrying later..."})
+			case socketmode.EventTypeConnected:
+				s.Logger.InfoD("connection-succeeded", logger.M{"message": "Connected to Slack with Socket Mode."})
+			case socketmode.EventTypeEventsAPI:
+				eventsAPIEvent, ok := evt.Data.(slackevents.EventsAPIEvent)
+				if !ok {
+					s.Logger.ErrorD("type-error", logger.M{"message": "Could not cast to events API event"})
+					continue
+				}
+
+				s.Logger.InfoD("event-received", logger.M{"event_type": eventsAPIEvent.Type})
+				client.Ack(*evt.Request)
+
+				switch eventsAPIEvent.Type {
+				case slackevents.CallbackEvent:
+					innerEvent := eventsAPIEvent.InnerEvent
+					switch ev := innerEvent.Data.(type) {
+					case *slackevents.AppMentionEvent:
+						s.Logger.InfoD("app-mention", logger.M{"event": ev})
+						messageEvent := &slackevents.MessageEvent{
+							Type:      ev.Type,
+							User:      ev.User,
+							Text:      ev.Text,
+							Channel:   ev.Channel,
+							TimeStamp: ev.TimeStamp,
+						}
+						s.DecodeMessage(messageEvent)
+					}
+				}
+			}
+		}
+	}()
+
+	// Cache refresh loop
+	go func() {
+		for {
+			time.Sleep(60 * time.Minute)
 			teams, overrides, userFlair, err := buildTeams(s.WhoIsWhoClient)
 			if err != nil {
-				s.Logger.CriticalD("user cache refresh failed. will continue without cache refresh...", logger.M{"error": err})
-			} else {
-				s.TeamToTeamMembers = teams
-				s.TeamOverrides = overrides
-				s.UserFlair = userFlair
-				s.LastCacheRefresh = time.Now()
+				s.Logger.CriticalD("user cache refresh failed", logger.M{"error": err})
+				continue
 			}
+			s.TeamToTeamMembers = teams
+			s.TeamOverrides = overrides
+			s.UserFlair = userFlair
+			s.LastCacheRefresh = time.Now()
 		}
+	}()
 
-		select {
-		case msg := <-rtm.IncomingEvents: // listening for slack events via the slack real-time messaging api
-			switch ev := msg.Data.(type) { // extract the type of the slack event
-			case *slack.MessageEvent:
-				s.DecodeMessage(ev)
-
-			case *slack.RTMError:
-				s.Logger.CriticalD("listening", logger.M{"error": ev.Error()})
-
-			case *slack.ConnectionErrorEvent:
-				s.Logger.CriticalD("listening", logger.M{"error": ev.Error()})
-
-			case *slack.InvalidAuthEvent:
-				s.Logger.CriticalD("listening", logger.M{"error": "invalid credentials"})
-				break Loop
-
-			default:
-				// Ignore other events..
-			}
-		}
-	}
+	client.Run()
 }
 
 func requireEnvVar(s string) string {
@@ -81,6 +104,7 @@ func main() {
 
 	api := slack.New(
 		requireEnvVar("SLACK_ACCESS_TOKEN"),
+		slack.OptionAppLevelToken(requireEnvVar("SLACK_APP_TOKEN")),
 		slack.OptionLog(log.New(os.Stdout, "pickabot: ", log.Lshortfile|log.LstdFlags)),
 		slack.OptionDebug(false),
 	)
