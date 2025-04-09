@@ -68,7 +68,11 @@ func SlackLoop(s *Bot) {
 						}
 						s.DecodeMessage(messageEvent)
 					}
+				default:
+					s.Logger.ErrorD("unknown-inner-event-type", logger.M{"message": "Unknown event type", "event_type": evt.Type})
 				}
+			default:
+				s.Logger.ErrorD("unknown-event-type", logger.M{"message": "Unknown event type", "event_type": evt.Type})
 			}
 		}
 	}()
